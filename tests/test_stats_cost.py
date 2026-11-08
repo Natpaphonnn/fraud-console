@@ -53,10 +53,10 @@ def test_invalid_params_rejected():
         )
     with pytest.raises(ValueError):
         CostParams(
-            review_cost_per_alert=1, fp_friction_cost=0, fn_loss_fraction=1.5, fn_fixed_cost=0
+            review_cost_per_alert=1, fp_friction_cost=0, fn_loss_fraction=2.5, fn_fixed_cost=0
         )
 
 
 def test_cost_yaml_loads():
     p = load_cost_params()
-    assert p.status in {"proposed", "confirmed"}
+    assert p.status in {"proposed", "accepted", "confirmed"}

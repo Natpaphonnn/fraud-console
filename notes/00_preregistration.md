@@ -58,4 +58,29 @@ Reporting: mean and standard deviation across the 15 folds, plus a 95% interval.
 
 ## Amendments
 
-_None yet._
+### A1 — 2026-11-09 — Nat's decisions before P2 (no model has been fit yet)
+
+1. **Holdout confirmed** (20%, stratified, seed 42, file above). It is not touched until the model **and** all thresholds are selected on CV. It is then scored **once**, and every holdout metric is reported with a stratified bootstrap 95% CI (2,000 resamples), however wide.
+2. **Cost parameters accepted as illustrative** (`configs/cost.yaml`, `status: accepted`). Every notebook, the README and the website label them as *assumed values, not bank data*.
+   - Sensitivity analysis: each parameter multiplied by ×0.5 and ×2 with the others at base. For each case report the cost-optimal threshold, expected cost per 1,000 transactions, recall, precision and alert rate, plus the cost of keeping the base threshold (regret). `fn_loss_fraction` ×2 = 2.0 is read as "a missed fraud costs twice its amount" (indirect losses), so its allowed range is widened to [0, 2].
+   - Export a JSON with, per threshold, TP / FP / FN / TN counts and the USD amount of missed fraud, so the P5 website can recompute cost for any parameter values without a backend (cost is linear in the parameters).
+3. **Policy.** Primary policy is two-tier: *approve* / *step-up* (review or extra authentication such as OTP/3DS). Supplementary three-tier policy: *approve* / *step-up* / *decline*.
+   - Decline-specific cost parameters are **proposed in `notes/01_cost_assumptions.md` and must be approved by Nat before they are used**.
+   - Both thresholds of the three-tier policy are chosen by expected cost on CV out-of-fold predictions only, then applied once to the holdout together with the two-tier threshold.
+4. Raw CSV committed with `data/raw/SOURCE.md` and its sha256 (already done in P0).
+5. `is_ai_generated_scam_attempt`: the final pipeline is also evaluated without it (paired comparison on the same 15 folds), as planned in §5.
+
+### A2 — 2026-11-09 — implementation details fixed before any P2 result
+
+- **Encoding.** One-hot for the 5 categoricals (all models); booleans as 0/1. Logistic regression additionally gets `log1p` on `amount_usd` and `account_balance_usd` (heavy right tails seen in P1) and standardisation of all numeric inputs, L2 penalty, `C = 1.0`. Trees get raw numerics.
+- **Default boosting settings** (before tuning): 300 trees, learning rate 0.05, depth/leaves limited (LightGBM `num_leaves = 15`, XGBoost `max_depth = 4`), row and column subsampling 0.8, `min_child_samples`/`min_child_weight` ≈ 20 rows. No early stopping (it would need an extra inner split of ~43 fraud).
+- **Order of comparisons** (each uses the §3 rule; the simpler option wins ties):
+  1. Logistic: unweighted vs `class_weight="balanced"`.
+  2. LightGBM vs XGBoost (both unweighted). The winner is "the boosting model".
+  3. Imbalance handling on the boosting model: none / class weight (`scale_pos_weight = n_neg / n_pos`) / random undersampling of legit to 10:1 / SMOTENC (categorical-aware SMOTE) to a minority ratio of 0.1, `k = 5`. All inside the training folds.
+  4. Tuning: 20 random configurations of the boosting model scored on repeat `r0` only; the best is then compared with the untuned version on all 15 folds. Tuned replaces untuned only if it passes the §3 rule.
+  5. Best boosting pipeline vs best logistic pipeline. Boosting becomes the final model only if it passes the §3 rule; otherwise the logistic model is final.
+  6. Ablation without `is_ai_generated_scam_attempt` on the final pipeline (reported, does not change the choice unless the leak alarm in §5 fires).
+- **Calibration** of the final pipeline: none vs sigmoid vs isotonic, each fit by inner 5-fold `CalibratedClassifierCV` inside every outer training fold. Lowest mean Brier score wins; ties (CI of the paired difference includes 0) go to "none" then "sigmoid".
+- **Threshold.** For each repeat the full dev OOF prediction set gives a cost-vs-threshold curve; the three curves are averaged and the minimum is the chosen threshold. Spread across repeats is reported.
+- **Explainability.** TreeSHAP values from the booster's native `pred_contrib` (exact, no extra dependency), on the final model refit on all dev rows; one-hot columns are summed back to their source feature. SHAP explains the *uncalibrated* log-odds; this is stated next to every SHAP plot. If logistic regression is the final model, exact linear SHAP is used instead: coefficient × (standardised value − its dev mean).

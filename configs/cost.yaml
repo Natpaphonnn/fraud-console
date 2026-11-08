@@ -1,14 +1,20 @@
-# Cost assumptions for threshold selection (P2). See notes/01_cost_assumptions.md.
-# status must be "confirmed" before these values drive any decision.
-status: proposed
+# Cost assumptions for threshold selection. See notes/01_cost_assumptions.md.
+# ILLUSTRATIVE VALUES — assumed for this portfolio project, NOT sourced from a bank.
+status: accepted          # accepted by Nat on 2026-11-09 as illustrative
+label: "Illustrative assumed costs (not bank data)"
 params:
-  review_cost_per_alert: 5.0   # USD per flagged transaction (analyst review / step-up auth)
-  fp_friction_cost: 10.0       # USD extra per good customer wrongly flagged (friction, support, churn risk)
-  fn_loss_fraction: 1.0        # share of amount_usd lost on a missed fraud (1.0 = issuer absorbs full amount)
+  review_cost_per_alert: 5.0   # USD per step-up / review (every flagged transaction)
+  fp_friction_cost: 10.0       # USD extra per good customer sent to step-up
+  fn_loss_fraction: 1.0        # multiplier on amount_usd lost on a missed fraud
   fn_fixed_cost: 15.0          # USD per missed fraud (chargeback handling)
-# Ranges for the P2 sensitivity analysis (min, max)
-sensitivity:
-  review_cost_per_alert: [1.0, 20.0]
-  fp_friction_cost: [0.0, 50.0]
-  fn_loss_fraction: [0.5, 1.0]
-  fn_fixed_cost: [0.0, 30.0]
+# Sensitivity analysis: each parameter scaled by these factors, others at base.
+sensitivity_factors: [0.5, 2.0]
+
+# Supplementary three-tier policy (approve / step-up / decline).
+# status must be "accepted" before these are used. See notes/01_cost_assumptions.md.
+three_tier:
+  status: proposed
+  params:
+    stepup_fraud_pass_rate: 0.2   # share of fraud that still gets through step-up
+    decline_fp_cost: 50.0         # USD per good customer hard-declined
+    decline_tp_cost: 0.0          # USD per fraud declined (automatic, no review)
