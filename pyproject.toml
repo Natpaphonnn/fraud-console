@@ -1,0 +1,43 @@
+[project]
+name = "fraud-e2e"
+version = "0.1.0"
+description = "End-to-end credit card fraud detection: EDA, cost-aware modelling, API, monitoring"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "pandas>=3.1.1",
+    "pyyaml>=6.0.3",
+    "scikit-learn>=1.9.1",
+    "scipy>=1.18.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.15,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.4.0",
+    "jupytext>=1.19.6",
+    "nbclient>=0.11.0",
+    "nbconvert>=7.17.2",
+    "nbformat>=5.11.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.4",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["notebooks/*.ipynb", "kaggle/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["B905"]
+
+[tool.ruff.lint.per-file-ignores]
+"notebooks/py/*.py" = ["E402", "B018", "E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

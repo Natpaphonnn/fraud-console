@@ -1,0 +1,155 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "scope": "dev split only",
+  "n_rows": 16000,
+  "n_fraud": 271,
+  "fraud_rate": 0.0169375,
+  "leakage_screen": {
+    "alarm_threshold_auc": 0.95,
+    "max_direction_free_auc": 0.7081198172271633,
+    "max_feature": "merchant_risk_score",
+    "transaction_id_auc": 0.48765635853955336,
+    "transaction_id_auc_ci": [
+      0.4568940394725328,
+      0.5192137223203245
+    ],
+    "alarm_triggered": false
+  },
+  "ai_scam_flag": {
+    "decision": "keep; also report model without it",
+    "n": 298,
+    "n_fraud": 24,
+    "fraud_rate": 0.08053691275167785,
+    "ci_low": 0.05471567445162086,
+    "ci_high": 0.11703494928058823
+  },
+  "top_numeric": [
+    {
+      "feature": "merchant_risk_score",
+      "auc": 0.7081198172271633,
+      "auc_ci_low": 0.6751882495937299,
+      "auc_ci_high": 0.7395020309396304
+    },
+    {
+      "feature": "cvv_retry_count",
+      "auc": 0.6984397166115472,
+      "auc_ci_low": 0.6697007888923063,
+      "auc_ci_high": 0.7267185861826194
+    },
+    {
+      "feature": "velocity_score",
+      "auc": 0.6764736863466289,
+      "auc_ci_low": 0.6434474191442277,
+      "auc_ci_high": 0.7081649749598774
+    },
+    {
+      "feature": "txn_count_last_24h",
+      "auc": 0.6058644584157076,
+      "auc_ci_low": 0.5738508223581187,
+      "auc_ci_high": 0.6381575656782698
+    },
+    {
+      "feature": "hours_since_last_txn",
+      "auc": 0.42503353032767405,
+      "auc_ci_low": 0.38626097022938566,
+      "auc_ci_high": 0.4604919662109076
+    }
+  ],
+  "top_categorical": [
+    {
+      "feature": "ip_country_mismatch",
+      "cramers_v": 0.1305252580898115,
+      "p_value": 3.0942216185032145e-61
+    },
+    {
+      "feature": "billing_shipping_mismatch",
+      "cramers_v": 0.10387000505175188,
+      "p_value": 1.977701742332654e-39
+    },
+    {
+      "feature": "auth_method",
+      "cramers_v": 0.09107406877972611,
+      "p_value": 1.0241876906904638e-27
+    },
+    {
+      "feature": "is_foreign_transaction",
+      "cramers_v": 0.08564764712556375,
+      "p_value": 2.384158227843305e-27
+    },
+    {
+      "feature": "merchant_category",
+      "cramers_v": 0.08047108560537829,
+      "p_value": 3.434894248362634e-17
+    }
+  ],
+  "n_discrete_significant_bonferroni": 8,
+  "n_discrete_tested": 11,
+  "not_significant": [
+    "channel",
+    "device_type",
+    "card_type"
+  ],
+  "amount_at_risk": {
+    "fraud_total_usd": 46735.700000000004,
+    "fraud_median_usd": 66.92,
+    "legit_median_usd": 57.48,
+    "fraud_max_usd": 3236.34,
+    "top10pct_fraud_cases": 28,
+    "top10pct_share_of_fraud_usd": 0.5444861208883146,
+    "fraud_min_usd": 5.14,
+    "legit_min_usd": 1.0,
+    "legit_share_below_fraud_min": 0.01850085828724013
+  },
+  "red_flags": [
+    {
+      "level": "0",
+      "n": 6960,
+      "n_fraud": 7,
+      "fraud_rate": 0.0010057471264367816,
+      "ci_low": 0.00048727555584017793,
+      "ci_high": 0.0020747383737123658
+    },
+    {
+      "level": "1",
+      "n": 6203,
+      "n_fraud": 47,
+      "fraud_rate": 0.007576978881186523,
+      "ci_low": 0.0057030287139151785,
+      "ci_high": 0.010060457347364708
+    },
+    {
+      "level": "2",
+      "n": 2242,
+      "n_fraud": 93,
+      "fraud_rate": 0.041480820695807316,
+      "ci_low": 0.0339811511050596,
+      "ci_high": 0.05054906275980561
+    },
+    {
+      "level": "3",
+      "n": 509,
+      "n_fraud": 89,
+      "fraud_rate": 0.17485265225933203,
+      "ci_low": 0.14432364321055471,
+      "ci_high": 0.21025271892453493
+    },
+    {
+      "level": "4+",
+      "n": 86,
+      "n_fraud": 35,
+      "fraud_rate": 0.4069767441860465,
+      "ci_low": 0.3092912327785102,
+      "ci_high": 0.5126172690420929
+    }
+  ],
+  "max_abs_spearman": {
+    "value": 0.6103760516719832,
+    "pair": [
+      "velocity_score",
+      "txn_count_last_24h"
+    ]
+  }
+}

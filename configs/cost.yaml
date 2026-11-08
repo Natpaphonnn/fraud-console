@@ -1,0 +1,14 @@
+# Cost assumptions for threshold selection (P2). See notes/01_cost_assumptions.md.
+# status must be "confirmed" before these values drive any decision.
+status: proposed
+params:
+  review_cost_per_alert: 5.0   # USD per flagged transaction (analyst review / step-up auth)
+  fp_friction_cost: 10.0       # USD extra per good customer wrongly flagged (friction, support, churn risk)
+  fn_loss_fraction: 1.0        # share of amount_usd lost on a missed fraud (1.0 = issuer absorbs full amount)
+  fn_fixed_cost: 15.0          # USD per missed fraud (chargeback handling)
+# Ranges for the P2 sensitivity analysis (min, max)
+sensitivity:
+  review_cost_per_alert: [1.0, 20.0]
+  fp_friction_cost: [0.0, 50.0]
+  fn_loss_fraction: [0.5, 1.0]
+  fn_fixed_cost: [0.0, 30.0]

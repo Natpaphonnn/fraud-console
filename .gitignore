@@ -1,0 +1,42 @@
+# Python / tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+kaggle.json
+
+# Data: only the canonical CSV and the locked split file are versioned
+data/raw/*.zip
+data/processed/*
+!data/processed/.gitkeep
+data/simulated/*
+!data/simulated/.gitkeep
+
+# Experiment tracking / model binaries (regenerable)
+mlruns/
+mlartifacts/
+models/*
+!models/.gitkeep
+catboost_info/
+
+# Web
+web/node_modules/
+web/.vercel/
+.vercel/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,427 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "n_rows": 20000,
+  "n_columns": 26,
+  "n_features": 24,
+  "feature_groups": {
+    "categorical": [
+      "merchant_category",
+      "card_type",
+      "auth_method",
+      "channel",
+      "device_type"
+    ],
+    "boolean": [
+      "is_foreign_transaction",
+      "is_new_merchant",
+      "used_vpn",
+      "ip_country_mismatch",
+      "billing_shipping_mismatch",
+      "is_ai_generated_scam_attempt"
+    ],
+    "discrete": [
+      "txn_count_last_24h",
+      "cvv_retry_count",
+      "prior_disputes",
+      "time_of_day_hour",
+      "day_of_week"
+    ],
+    "continuous": [
+      "amount_usd",
+      "hours_since_last_txn",
+      "distance_from_home_km",
+      "card_age_months",
+      "customer_age",
+      "account_balance_usd",
+      "velocity_score",
+      "merchant_risk_score"
+    ]
+  },
+  "quality_checks": [
+    {
+      "check": "columns_match_schema",
+      "passed": true,
+      "missing": [],
+      "unexpected": []
+    },
+    {
+      "check": "row_count",
+      "passed": true,
+      "n_rows": 20000,
+      "n_cols": 26
+    },
+    {
+      "check": "no_missing_values",
+      "passed": true,
+      "missing_by_col": {}
+    },
+    {
+      "check": "id_unique",
+      "passed": true,
+      "n_unique": 20000
+    },
+    {
+      "check": "id_contiguous_1_to_n",
+      "passed": true
+    },
+    {
+      "check": "no_duplicate_rows_excluding_id",
+      "passed": true,
+      "n_duplicates": 0
+    },
+    {
+      "check": "no_duplicate_feature_vectors",
+      "passed": true,
+      "n_duplicates": 0
+    },
+    {
+      "check": "target_is_binary",
+      "passed": true,
+      "values": [
+        0,
+        1
+      ],
+      "n_positive": 339,
+      "positive_rate": 0.01695
+    },
+    {
+      "check": "levels_merchant_category",
+      "passed": true,
+      "unexpected": [],
+      "n_levels": 12
+    },
+    {
+      "check": "levels_card_type",
+      "passed": true,
+      "unexpected": [],
+      "n_levels": 5
+    },
+    {
+      "check": "levels_auth_method",
+      "passed": true,
+      "unexpected": [],
+      "n_levels": 5
+    },
+    {
+      "check": "levels_channel",
+      "passed": true,
+      "unexpected": [],
+      "n_levels": 5
+    },
+    {
+      "check": "levels_device_type",
+      "passed": true,
+      "unexpected": [],
+      "n_levels": 8
+    },
+    {
+      "check": "range_amount_usd",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 1.0,
+      "observed_max": 6872.69,
+      "allowed": [
+        0.01,
+        1000000.0
+      ]
+    },
+    {
+      "check": "range_hours_since_last_txn",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 0.01,
+      "observed_max": 87.05,
+      "allowed": [
+        0,
+        8760
+      ]
+    },
+    {
+      "check": "range_txn_count_last_24h",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 0.0,
+      "observed_max": 12.0,
+      "allowed": [
+        0,
+        500
+      ]
+    },
+    {
+      "check": "range_distance_from_home_km",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 0.0,
+      "observed_max": 216.19,
+      "allowed": [
+        0,
+        20100
+      ]
+    },
+    {
+      "check": "range_card_age_months",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 22.0,
+      "observed_max": 74.0,
+      "allowed": [
+        0,
+        600
+      ]
+    },
+    {
+      "check": "range_customer_age",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 18.0,
+      "observed_max": 81.0,
+      "allowed": [
+        18,
+        110
+      ]
+    },
+    {
+      "check": "range_account_balance_usd",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 52.05,
+      "observed_max": 127125.86,
+      "allowed": [
+        0,
+        100000000.0
+      ]
+    },
+    {
+      "check": "range_cvv_retry_count",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 0.0,
+      "observed_max": 3.0,
+      "allowed": [
+        0,
+        10
+      ]
+    },
+    {
+      "check": "range_velocity_score",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 0.0,
+      "observed_max": 74.4,
+      "allowed": [
+        0,
+        100
+      ]
+    },
+    {
+      "check": "range_time_of_day_hour",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 0.0,
+      "observed_max": 23.0,
+      "allowed": [
+        0,
+        23
+      ]
+    },
+    {
+      "check": "range_day_of_week",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 0.0,
+      "observed_max": 6.0,
+      "allowed": [
+        0,
+        6
+      ]
+    },
+    {
+      "check": "range_merchant_risk_score",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 0.0,
+      "observed_max": 100.0,
+      "allowed": [
+        0,
+        100
+      ]
+    },
+    {
+      "check": "range_prior_disputes",
+      "passed": true,
+      "n_out_of_range": 0,
+      "observed_min": 0.0,
+      "observed_max": 4.0,
+      "allowed": [
+        0,
+        100
+      ]
+    }
+  ],
+  "n_quality_checks": 26,
+  "n_quality_checks_failed": 0,
+  "plausibility_checks": [
+    {
+      "rule": "atm_channel_on_non_atm_device",
+      "expression": "channel == 'ATM' and device_type != 'ATM Machine'",
+      "n_rows": 1295,
+      "share_of_rows": 0.06475
+    },
+    {
+      "rule": "atm_device_on_non_atm_channel",
+      "expression": "device_type == 'ATM Machine' and channel != 'ATM'",
+      "n_rows": 926,
+      "share_of_rows": 0.0463
+    },
+    {
+      "rule": "card_present_channel_on_desktop",
+      "expression": "channel in ['POS', 'Contactless'] and device_type in ['Windows PC', 'Mac']",
+      "n_rows": 1685,
+      "share_of_rows": 0.08425
+    },
+    {
+      "rule": "shipping_mismatch_at_atm",
+      "expression": "channel == 'ATM' and billing_shipping_mismatch",
+      "n_rows": 25,
+      "share_of_rows": 0.00125
+    },
+    {
+      "rule": "amount_exceeds_account_balance",
+      "expression": "amount_usd > account_balance_usd",
+      "n_rows": 305,
+      "share_of_rows": 0.01525
+    }
+  ],
+  "channel_device_independence": {
+    "chi2_p_value": 0.4433450931161074,
+    "max_share_gap_pp": 2.345662299854439
+  },
+  "class_balance": [
+    {
+      "subset": "all",
+      "n": 20000,
+      "n_fraud": 339,
+      "fraud_rate_%": 1.695,
+      "ci95_low_%": 1.5251550106812466,
+      "ci95_high_%": 1.8833975926990205
+    },
+    {
+      "subset": "dev",
+      "n": 16000,
+      "n_fraud": 271,
+      "fraud_rate_%": 1.69375,
+      "ci95_low_%": 1.5050914735377654,
+      "ci95_high_%": 1.9055987674596395
+    },
+    {
+      "subset": "holdout",
+      "n": 4000,
+      "n_fraud": 68,
+      "fraud_rate_%": 1.7,
+      "ci95_low_%": 1.3432529484506985,
+      "ci95_high_%": 2.149429273334465
+    }
+  ],
+  "fold_fraud_counts": [
+    {
+      "repeat": 0,
+      "fold": 0,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 0,
+      "fold": 1,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 0,
+      "fold": 2,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 0,
+      "fold": 3,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 0,
+      "fold": 4,
+      "n": 3200,
+      "n_fraud": 55
+    },
+    {
+      "repeat": 1,
+      "fold": 0,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 1,
+      "fold": 1,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 1,
+      "fold": 2,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 1,
+      "fold": 3,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 1,
+      "fold": 4,
+      "n": 3200,
+      "n_fraud": 55
+    },
+    {
+      "repeat": 2,
+      "fold": 0,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 2,
+      "fold": 1,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 2,
+      "fold": 2,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 2,
+      "fold": 3,
+      "n": 3200,
+      "n_fraud": 54
+    },
+    {
+      "repeat": 2,
+      "fold": 4,
+      "n": 3200,
+      "n_fraud": 55
+    }
+  ],
+  "cost_params": {
+    "review_cost_per_alert": 5.0,
+    "fp_friction_cost": 10.0,
+    "fn_loss_fraction": 1.0,
+    "fn_fixed_cost": 15.0,
+    "status": "proposed"
+  }
+}
