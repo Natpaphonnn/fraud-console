@@ -2,7 +2,7 @@
 
 An end-to-end data-science case study on a small, highly imbalanced fraud dataset: data checks, EDA, pre-registered model comparison, expected-cost thresholds, a one-time holdout check and explanations — with an uncertainty interval on every number.
 
-**Links:** Project page (with threshold simulator): [Project page](https://natpaphonnn.github.io/fraud-console/) · Kaggle notebooks: _coming soon_ · Medium article: _coming soon_
+**Links:** Project page (with threshold simulator): [Project page](https://natpaphonnn.github.io/fraud-console/) · Kaggle notebooks: [Kaggle notebooks](https://www.kaggle.com/code/natpaphonnukhunthod/fraud-why-logistic-beats-lightgbm-smote-hurts) · Medium article: _coming soon_
 
 > **Status:** data-science work complete (notebooks 00–06, model card) and a static "fraud console" project page (`web/site/`): the logistic model runs in the browser on a live stream of dev transactions, with per-feature contributions, a build-your-own transaction form and a cost/threshold simulator. Engineering (API, Docker, MLflow, CI) and monitoring are deferred.
 

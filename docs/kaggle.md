@@ -8,6 +8,14 @@ All files in `kaggle/` are generated (`make kaggle`) and tested in a simulated K
 | `fraud_story.ipynb` | **Main public notebook**: the whole project in a ~10-minute read; re-runs a light version live (5 folds), quotes the pre-registered results | the dataset only |
 | `01`–`06`, `08`, `09` | Self-contained editions of the repo notebooks (a first cell writes the project package and any upstream results into `/kaggle/working`) | the dataset only |
 
+## Published
+
+- **Story notebook:** <https://www.kaggle.com/code/natpaphonnukhunthod/fraud-why-logistic-beats-lightgbm-smote-hurts>
+  (public; title shortened to fit Kaggle's limit). `kaggle/kernel-metadata.json` holds its settings: CPU only,
+  internet off, dataset `uditjain13/credit-card-fraud-detection-2026`.
+- New version after `make kaggle && make kaggle-test`: `kaggle kernels push -p kaggle` (uses your own Kaggle
+  login; the CLI reads the credentials, nothing is stored in the repo).
+
 ## Upload one notebook
 
 1. <https://www.kaggle.com/code> → **New Notebook** → **File → Import Notebook** → choose the `.ipynb`.

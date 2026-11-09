@@ -1,0 +1,17 @@
+{
+  "id": "natpaphonnukhunthod/fraud-why-logistic-beats-lightgbm-smote-hurts",
+  "title": "Fraud: why logistic beats LightGBM, SMOTE hurts",
+  "code_file": "fraud_story.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "uditjain13/credit-card-fraud-detection-2026"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

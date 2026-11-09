@@ -29,6 +29,7 @@
 # %%
 import os
 import time
+import warnings
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -44,6 +45,8 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 
+# cosmetic: LightGBM warns when it gets arrays from the column transformer; results are unaffected
+warnings.filterwarnings("ignore", message="X does not have valid feature names")
 T_START = time.time()
 SEED = 42
 INPUT = Path(os.environ.get("KAGGLE_INPUT_DIR", "/kaggle/input"))
@@ -257,7 +260,10 @@ for b in band.cat.categories:
         "recall %": f"{100 * tp / n_pos:.1f} {ci(tp_b / n_pos)}",
         "false-positive %": f"{100 * fp / n_neg:.1f} {ci(fp_b / n_neg)}",
     })
-pd.DataFrame(rows)
+fair = pd.DataFrame(rows)
+print("recall % by band:", dict(zip(fair["band"], fair["recall %"].str.split().str[0])))
+print("false-positive % by band:", dict(zip(fair["band"], fair["false-positive %"].str.split().str[0])))
+fair
 
 # %% [markdown]
 # With only {{fair_fraud_min}}–{{fair_fraud_max}} fraud cases per band, the recall intervals are wide.

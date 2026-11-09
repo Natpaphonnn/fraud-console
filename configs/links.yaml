@@ -1,6 +1,6 @@
 # Public links (filled in by Nat). Leave a value empty ("") until it exists.
 # After editing, run `make docs` — README.md and the website (web/site/) are regenerated.
 github: "https://github.com/Natpaphonnn/fraud-console"
-kaggle: ""   # Kaggle notebook (or profile/collection) URL
+kaggle: "https://www.kaggle.com/code/natpaphonnukhunthod/fraud-why-logistic-beats-lightgbm-smote-hurts"
 medium: ""   # Medium article URL
 website: "https://natpaphonnn.github.io/fraud-console/"  # GitHub Pages (.github/workflows/pages.yml)
