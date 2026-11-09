@@ -1,0 +1,76 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "preregistration": "notes/00_preregistration.md#A6",
+  "data": "dev, 5-fold CV x 3 repeats (same folds as P2); holdout not used",
+  "final_pr_auc": {
+    "mean": 0.41509213333333334,
+    "sd": 0.06171861082117158,
+    "ci_low": 0.3406015418051289,
+    "ci_high": 0.48958272486153775
+  },
+  "variants": {
+    "spline": {
+      "label": "GAM-like (splines on numeric inputs)",
+      "spec": {
+        "params": {},
+        "imbalance": "none",
+        "drop": [],
+        "calibration": null,
+        "model": "logreg",
+        "transform": "spline"
+      },
+      "pr_auc": {
+        "mean": 0.3990503023148477,
+        "sd": 0.05436736266750142,
+        "ci_low": 0.33343221806040824,
+        "ci_high": 0.4646683865692872
+      },
+      "test": {
+        "a": "final",
+        "b": "logreg_spline",
+        "metric": "pr_auc",
+        "mean_diff_b_minus_a": -0.01604183101848559,
+        "ci_low": -0.040780361234596926,
+        "ci_high": 0.008696699197625741,
+        "p_value": 0.18599840012260796,
+        "n_folds": 15,
+        "b_wins_per_folds": 4,
+        "lower_is_better": false,
+        "verdict": "not distinguishable"
+      }
+    },
+    "flag_pairs": {
+      "label": "Red-flag pairwise interactions",
+      "spec": {
+        "params": {},
+        "imbalance": "none",
+        "drop": [],
+        "calibration": null,
+        "model": "logreg",
+        "transform": "flag_pairs"
+      },
+      "pr_auc": {
+        "mean": 0.4168232384932207,
+        "sd": 0.057744658327483184,
+        "ci_low": 0.34712896476966604,
+        "ci_high": 0.4865175122167754
+      },
+      "test": {
+        "a": "final",
+        "b": "logreg_flag_pairs",
+        "metric": "pr_auc",
+        "mean_diff_b_minus_a": 0.001731105159887314,
+        "ci_low": -0.020907567112679274,
+        "ci_high": 0.024369777432453905,
+        "p_value": 0.8720715366321843,
+        "n_folds": 15,
+        "b_wins_per_folds": 9,
+        "lower_is_better": false,
+        "verdict": "not distinguishable"
+      }
+    }
+  }
+}

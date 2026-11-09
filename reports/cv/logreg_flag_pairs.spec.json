@@ -1,0 +1,12 @@
+{
+  "name": "logreg_flag_pairs",
+  "spec": {
+    "params": {},
+    "imbalance": "none",
+    "drop": [],
+    "calibration": null,
+    "model": "logreg",
+    "transform": "flag_pairs"
+  },
+  "spec_id": "22151bba4c25"
+}

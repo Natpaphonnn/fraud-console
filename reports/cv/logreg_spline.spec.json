@@ -1,0 +1,12 @@
+{
+  "name": "logreg_spline",
+  "spec": {
+    "params": {},
+    "imbalance": "none",
+    "drop": [],
+    "calibration": null,
+    "model": "logreg",
+    "transform": "spline"
+  },
+  "spec_id": "18c5c57e5e53"
+}
