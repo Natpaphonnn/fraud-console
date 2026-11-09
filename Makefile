@@ -1,4 +1,4 @@
-.PHONY: check lint test notebooks kaggle docs web-model web-serve web-preview web-live kaggle-test content-preview
+.PHONY: check lint test notebooks kaggle docs web-model web-serve web-preview web-live kaggle-test content-preview fonts
 
 check: lint test
 
@@ -52,3 +52,7 @@ kaggle-test:
 # low-res content previews (full renders + clips run on GitHub Actions: content.yml)
 content-preview:
 	OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 nice -n 19 uv run python scripts/content_figures.py --quick
+
+# Thai web font subset (FraudThai, from IBM Plex Sans Thai Looped, OFL) -> web/src/fonts/
+fonts:
+	OMP_NUM_THREADS=1 nice -n 19 uv run python scripts/build_fonts.py

@@ -12,6 +12,7 @@ import {
   validateParams,
 } from "./sim.js";
 import { createConvergence, createFlow, createPR, createStrip, tweenNumber } from "./viz.js";
+import { currentLang, initialLang, setLang, t } from "./i18n.js";
 
 const DATA = JSON.parse(document.getElementById("site-data").textContent);
 const D = DATA.sim;
@@ -28,6 +29,7 @@ const VISIBLE = 14;
 const ROWS_PER_SEC = 2;
 const X_MIN = 1e-4;
 const SVG_NS = "http://www.w3.org/2000/svg";
+const PER = "1,000"; // costs are shown per 1,000 transactions
 
 const $ = (id) => document.getElementById(id);
 const fmtPct = (x, nd = 1) => (Number.isFinite(x) ? `${(100 * x).toFixed(nd)}%` : "—");
@@ -91,20 +93,20 @@ function selectRow(i) {
 
 // ---------------------------------------------------------------- live stream
 
+const GLYPH = { tp: "●", fn: "×", fp: "○", tn: "·" };
 function outcome(i) {
-  const step = SCORES[i] >= thr();
-  if (ROWS[i].y === 1) return step ? ["tp", "●", "fraud caught"] : ["fn", "×", "fraud missed"];
-  return step ? ["fp", "○", "false alarm"] : ["tn", "·", "legit ok"];
+  const o = outcomeOf(SCORES[i], Y[i], thr());
+  return [o, GLYPH[o], t(`js.out.${o}`)];
 }
 
-function sbar(s, t) {
+function sbar(s, thrv) {
   const wrap = h("span", "sbar");
   const track = h("span", "sbar-track");
-  track.title = `Score ${fmtScore(s)} on a log scale from ${X_MIN} to 1; tick = threshold ${fmtThr(t)}`;
-  const fill = h("span", `sbar-fill${s >= t ? " step" : ""}`);
+  track.title = t("js.sbar_title", { score: fmtScore(s), min: X_MIN, max: 1, t: fmtThr(thrv) });
+  const fill = h("span", `sbar-fill${s >= thrv ? " step" : ""}`);
   fill.style.width = `${(100 * logPos(s)).toFixed(1)}%`;
   const mark = h("span", "sbar-thr");
-  mark.style.left = `${(100 * logPos(t)).toFixed(1)}%`;
+  mark.style.left = `${(100 * logPos(thrv)).toFixed(1)}%`;
   track.append(fill, mark);
   wrap.append(track, h("span", "sbar-val", fmtScore(s)));
   return wrap;
@@ -113,7 +115,7 @@ function sbar(s, t) {
 // rows with index >= freshFrom are new this tick: a caught fraud flashes once
 function renderStream(freshFrom = Infinity) {
   const list = $("s-rows");
-  const t = thr();
+  const tv = thr();
   const frag = document.createDocumentFragment();
   for (let k = state.played - 1; k >= Math.max(0, state.played - VISIBLE); k--) {
     const r = ROWS[k];
@@ -126,8 +128,13 @@ function renderStream(freshFrom = Infinity) {
     b.setAttribute("aria-pressed", String(state.selected === k));
     b.setAttribute(
       "aria-label",
-      `Transaction ${r.id}, ${fmtAmt(r.amount_usd)}, score ${fmtScore(SCORES[k])}, ` +
-        `${SCORES[k] >= t ? "step-up" : "approve"}, ${label}. Inspect.`,
+      t("js.row_aria", {
+        id: r.id,
+        amount: fmtAmt(r.amount_usd),
+        score: fmtScore(SCORES[k]),
+        decision: t(SCORES[k] >= tv ? "js.dec.step" : "js.dec.approve"),
+        outcome: label,
+      }),
     );
     const out = h("span", `out ${cls}`);
     out.append(h("span", `o o--${cls}`, glyph), h("span", "txt", label));
@@ -136,31 +143,34 @@ function renderStream(freshFrom = Infinity) {
       h("span", "amt", fmtAmt(r.amount_usd)),
       h("span", "merch", r.merchant_category),
       h("span", "chan", r.channel),
-      sbar(SCORES[k], t),
-      h("span", `dec${SCORES[k] >= t ? " step" : ""}`, SCORES[k] >= t ? "STEP-UP" : "APPROVE"),
+      sbar(SCORES[k], tv),
+      h("span", `dec${SCORES[k] >= tv ? " step" : ""}`, SCORES[k] >= tv ? "STEP-UP" : "APPROVE"),
       out,
     );
     li.append(b);
     frag.append(li);
   }
   list.replaceChildren(frag);
-  $("s-progress").textContent = `${state.played.toLocaleString("en-US")} played`;
+  $("s-progress").textContent = t("js.progress", { n: state.played.toLocaleString("en-US") });
 }
 
 function renderCounters() {
-  const t = thr();
-  const full = sampleOutcomes(SCORES, Y, AMT, t, state.params);
+  const tv = thr();
+  const full = sampleOutcomes(SCORES, Y, AMT, tv, state.params);
   const pct = (nd) => (v) => fmtPct(v, nd);
   const int = (v) => Math.round(v).toLocaleString("en-US");
   tweenNumber($("f-recall"), full.recall, pct(1));
   tweenNumber($("f-precision"), full.precision, pct(1));
   tweenNumber($("f-alert"), full.alertRate, pct(2));
   tweenNumber($("f-cost"), full.costPer1000, fmtUsd);
-  $("f-counts").textContent =
-    `${full.tp} caught · ${full.fn} missed · ${full.fp.toLocaleString("en-US")} false alarms · ` +
-    `${full.tn.toLocaleString("en-US")} approved ok`;
+  $("f-counts").textContent = t("js.f_counts", {
+    tp: full.tp,
+    fn: full.fn,
+    fp: full.fp.toLocaleString("en-US"),
+    tn: full.tn.toLocaleString("en-US"),
+  });
   const k = state.played;
-  const so = sampleOutcomes(SCORES.slice(0, k), Y.slice(0, k), AMT.slice(0, k), t, state.params);
+  const so = sampleOutcomes(SCORES.slice(0, k), Y.slice(0, k), AMT.slice(0, k), tv, state.params);
   tweenNumber($("c-tp"), so.tp, int);
   tweenNumber($("c-fn"), so.fn, int);
   tweenNumber($("c-fp"), so.fp, int);
@@ -168,20 +178,20 @@ function renderCounters() {
   tweenNumber($("c-recall"), so.recall, pct(0));
   tweenNumber($("c-precision"), so.precision, pct(0));
   for (const [id, v] of [["c-tp", so.tp], ["c-fn", so.fn], ["c-fp", so.fp], ["c-tn", so.tn]]) $(id).dataset.count = String(v);
-  $("c-played").textContent = `${k.toLocaleString("en-US")} / ${N.toLocaleString("en-US")} rows`;
+  $("c-played").textContent = t("js.c_played", { k: k.toLocaleString("en-US"), n: N.toLocaleString("en-US") });
 }
 
 function renderPlayState() {
   const btn = $("s-play");
-  btn.textContent = state.playing ? "Pause" : state.played >= N ? "Replay" : "Play";
+  btn.textContent = t(state.playing ? "js.play.pause" : state.played >= N ? "js.play.replay" : "js.play.play");
   btn.setAttribute("aria-pressed", String(state.playing));
   $("live-dot").classList.toggle("on", state.playing);
   const hint = $("s-hint");
   if (!state.playing && state.played === 0 && REDUCED) {
-    hint.textContent = "Reduced motion is on, so the stream waits for you: press Play or Step.";
+    hint.textContent = t("js.hint.reduced");
     hint.hidden = false;
   } else if (state.played >= N) {
-    hint.textContent = "End of the sample. Replay to start again.";
+    hint.textContent = t("js.hint.end");
     hint.hidden = false;
   } else hint.hidden = true;
 }
@@ -260,7 +270,7 @@ function setSpeed(v) {
 
 const NUM_DP = { amount_usd: 2, account_balance_usd: 2 };
 function fmtValue(f, v) {
-  if (DATA.model.final_model.boolean.some((b) => b.feature === f)) return Number(v) ? "yes" : "no";
+  if (DATA.model.final_model.boolean.some((b) => b.feature === f)) return t(Number(v) ? "js.yes" : "js.no");
   if (typeof v === "string") return v;
   const dp = NUM_DP[f] ?? (Number.isInteger(v) ? 0 : 2);
   return v.toLocaleString("en-US", { maximumFractionDigits: dp, minimumFractionDigits: dp });
@@ -274,27 +284,27 @@ function contribList(pm, row, top = 7, grow = false) {
   const logit = pm.intercept + items.reduce((s, [, c]) => s + c, 0);
   const scale = Math.max(1, ...shown.map(([, c]) => Math.abs(c)), Math.abs(restSum));
   const ul = h("ul", `contrib${grow && !REDUCED ? " grow" : ""}`);
-  ul.setAttribute("aria-label", "Contribution of each feature to the log-odds (coefficient × model input)");
+  ul.setAttribute("aria-label", t("js.contrib.aria"));
   const line = (label, valueLabel, c, bar = true, cls = "") => {
     const li = h("li", cls);
     const f = h("span", "f");
     f.append(document.createTextNode(label));
     if (valueLabel !== null) f.append(h("i", null, `= ${valueLabel}`));
-    const t = h("span", "t");
+    const track = h("span", "t");
     if (bar) {
       const b = h("span", `b${c >= 0 ? " pos" : ""}`);
       const w = (50 * Math.abs(c)) / scale;
       b.style.width = `${w.toFixed(2)}%`;
       b.style.left = c >= 0 ? "50%" : `${(50 - w).toFixed(2)}%`;
-      t.append(b);
+      track.append(b);
     }
-    li.append(f, t, h("span", "n", fmtSigned(c)));
+    li.append(f, track, h("span", "n", fmtSigned(c)));
     return li;
   };
   for (const [feat, c] of shown) ul.append(line(feat, fmtValue(feat, row[feat]), c));
-  if (rest.length) ul.append(line(`${rest.length} other features`, null, restSum));
-  ul.append(line("intercept", null, pm.intercept, false));
-  ul.append(line("log-odds", null, logit, false, "sum"));
+  if (rest.length) ul.append(line(t("js.contrib.others", { n: rest.length }), null, restSum));
+  ul.append(line(t("js.contrib.intercept"), null, pm.intercept, false));
+  ul.append(line(t("js.contrib.logodds"), null, logit, false, "sum"));
   return ul;
 }
 
@@ -304,10 +314,10 @@ let lastInspected = null;
 function renderInspector() {
   const body = $("insp-body");
   const mode = $("insp-mode");
-  mode.textContent = state.pinned ? "pinned" : "following live";
+  mode.textContent = t(state.pinned ? "js.insp.pinned" : "js.insp.following");
   mode.classList.toggle("pinned", state.pinned);
   if (state.selected === null) {
-    body.replaceChildren(h("p", "fine", "Waiting for the first transaction… (Play or Step)"));
+    body.replaceChildren(h("p", "fine", t("js.insp.waiting")));
     return;
   }
   const i = state.selected;
@@ -317,18 +327,13 @@ function renderInspector() {
   const head = h("div", "insp-head");
   head.append(
     h("span", null, `#${String(r.id).padStart(5, "0")} · ${fmtAmt(r.amount_usd)} · ${r.merchant_category} · ${r.channel}`),
-    h("span", null, `truth: ${r.y ? "fraud" : "legit"}`),
+    h("span", null, t("js.insp.truth", { truth: t(r.y ? "js.truth.fraud" : "js.truth.legit") })),
     h("span", "insp-score", fmtScore(s)),
     h("span", `decision${isStep ? " step" : ""}`, isStep ? "STEP-UP" : "APPROVE"),
   );
-  const note = h(
-    "p",
-    "fine",
-    `Scored by fold-${r.fold} model (not trained on this row). Bars: coefficient × model input, in log-odds; ` +
-      "they add up with the intercept to the score's log-odds.",
-  );
+  const note = h("p", "fine", t("js.insp.note", { fold: r.fold }));
   const actions = h("div", "insp-actions");
-  const toPg = h("button", "btn btn--ghost", "Edit in Try it yourself →");
+  const toPg = h("button", "btn btn--ghost", t("js.insp.edit"));
   toPg.type = "button";
   toPg.addEventListener("click", () => {
     loadPlayground(ROWS[i]);
@@ -336,7 +341,7 @@ function renderInspector() {
   });
   actions.append(toPg);
   if (state.pinned) {
-    const follow = h("button", "btn btn--ghost", "Follow live");
+    const follow = h("button", "btn btn--ghost", t("js.insp.follow"));
     follow.type = "button";
     follow.addEventListener("click", () => {
       state.pinned = false;
@@ -355,9 +360,9 @@ function renderInspector() {
 
 const GROUPS = [
   ["transaction", ["amount_usd", "merchant_category", "channel", "time_of_day_hour", "day_of_week", "is_foreign_transaction", "is_new_merchant"]],
-  ["card & customer", ["card_type", "auth_method", "card_age_months", "customer_age", "account_balance_usd", "prior_disputes"]],
-  ["behaviour & risk", ["merchant_risk_score", "velocity_score", "cvv_retry_count", "txn_count_last_24h", "hours_since_last_txn", "distance_from_home_km"]],
-  ["device & network", ["device_type", "used_vpn", "ip_country_mismatch", "billing_shipping_mismatch", "is_ai_generated_scam_attempt"]],
+  ["card", ["card_type", "auth_method", "card_age_months", "customer_age", "account_balance_usd", "prior_disputes"]],
+  ["risk", ["merchant_risk_score", "velocity_score", "cvv_retry_count", "txn_count_last_24h", "hours_since_last_txn", "distance_from_home_km"]],
+  ["device", ["device_type", "used_vpn", "ip_country_mismatch", "billing_shipping_mismatch", "is_ai_generated_scam_attempt"]],
 ];
 const CATS = Object.fromEntries(FINAL.cat.map((b) => [b.feature, b.categories]));
 const BOOLS = new Set(FINAL.bool.map((b) => b.feature));
@@ -369,7 +374,8 @@ function buildPlaygroundForm() {
   const root = $("pg-fields");
   for (const [name, feats] of groups) {
     const fs = h("fieldset", "pg-group");
-    const lg = h("legend", "k", name);
+    const lg = h("legend", "k", t(`js.pg.group.${name}`));
+    lg.dataset.i18n = `js.pg.group.${name}`; // relabelled by applyStatic() on a language switch
     const grid = h("div", "pg-grid");
     for (const f of feats) {
       if (!DATA.model.features.includes(f)) continue;
@@ -405,8 +411,9 @@ function buildPlaygroundForm() {
     fs.append(lg, grid);
     root.append(fs);
   }
-  const help = h("p", "fine", "Numeric fields are prefilled with real dev rows; min/max follow the sample's range.");
+  const help = h("p", "fine", t("js.pg.help"));
   help.id = "pg-range-help";
+  help.dataset.i18n = "js.pg.help";
   root.append(help);
   $("pg-form").addEventListener("input", onPlaygroundInput);
   $("pg-form").addEventListener("change", onPlaygroundInput);
@@ -422,7 +429,7 @@ function loadPlayground(row) {
     else el.value = String(v);
     el.removeAttribute("aria-invalid");
   }
-  state.pgSource = `transaction #${String(row.id).padStart(5, "0")} (truth: ${row.y ? "fraud" : "legit"})`;
+  state.pgSource = { id: row.id, y: row.y };
   renderPlayground();
 }
 
@@ -439,15 +446,15 @@ function onPlaygroundInput(e) {
     if (!ok) return;
     state.pg[f] = v;
   }
-  state.pgSource = "your edit";
+  state.pgSource = null; // edited by hand
   renderPlayground();
 }
 
 function renderPlayground() {
   if (!state.pg) return;
   const s = score(FINAL, state.pg);
-  const t = thr();
-  const isStep = s >= t;
+  const tv = thr();
+  const isStep = s >= tv;
   $("pg-score").textContent = fmtScore(s);
   const dec = $("pg-decision");
   dec.textContent = isStep ? "STEP-UP" : "APPROVE";
@@ -455,9 +462,14 @@ function renderPlayground() {
   const g = $("pg-gauge");
   g.classList.toggle("step", isStep);
   g.querySelector(".gauge-dot").style.left = `${(100 * logPos(s)).toFixed(2)}%`;
-  g.querySelector(".gauge-thr").style.left = `${(100 * logPos(t)).toFixed(2)}%`;
-  $("pg-note").textContent =
-    `Final model · threshold ${fmtThr(t)} (log-scale bar from ${X_MIN} to 1) · loaded from ${state.pgSource}.`;
+  g.querySelector(".gauge-thr").style.left = `${(100 * logPos(tv)).toFixed(2)}%`;
+  const src = state.pgSource
+    ? t("js.pg.src_row", {
+        id: String(state.pgSource.id).padStart(5, "0"),
+        truth: t(state.pgSource.y ? "js.truth.fraud" : "js.truth.legit"),
+      })
+    : t("js.pg.src_edit");
+  $("pg-note").textContent = t("js.pg.note", { t: fmtThr(tv), min: X_MIN, max: 1, src });
   $("pg-contrib").replaceChildren(contribList(FINAL, state.pg, 8));
 }
 
@@ -490,7 +502,7 @@ function renderSim() {
   for (const id of ["thr", "thr-mini"]) {
     const s = $(id);
     s.value = String(state.index);
-    s.setAttribute("aria-valuetext", `threshold ${fmtThr(m.threshold)}`);
+    s.setAttribute("aria-valuetext", t("js.thr.valuetext", { t: fmtThr(m.threshold) }));
   }
   $("thr-out").textContent = fmtThr(m.threshold);
   $("thr-mini-out").textContent = fmtThr(m.threshold);
@@ -498,15 +510,23 @@ function renderSim() {
   $("o-precision").textContent = fmtPct(m.precision);
   $("o-alert").textContent = fmtPct(m.alertRate, 2);
   $("o-cost").textContent = fmtUsd(m.costPer1000);
-  $("o-cost-sub").textContent =
-    `vs ${fmtUsd(m.nothingPer1000)} stepping up nobody` +
-    (Number.isFinite(m.saving) ? ` (${m.saving >= 0 ? `${fmtPct(m.saving)} saved` : `${fmtPct(-m.saving)} more`})` : "");
-  $("o-sentence").textContent =
-    `Per 1,000 transactions: ${fmtNum(m.flaggedPer1000)} stepped up, of which ${fmtNum(m.fraudCaughtPer1000)} ` +
-    `are fraud; ${fmtNum(m.fraudMissedPer1000)} fraud missed (${fmtUsd(m.missedUsdPer1000)} of fraud amount).`;
-  $("o-best").textContent =
-    `Lowest cost for these costs: threshold ${fmtThr(best.threshold)} → ${fmtUsd(best.costPer1000)} per 1,000, ` +
-    `recall ${fmtPct(best.recall)}.`;
+  const change = Number.isFinite(m.saving)
+    ? t(m.saving >= 0 ? "js.sim.saved" : "js.sim.more", { pct: fmtPct(Math.abs(m.saving)) })
+    : "—";
+  $("o-cost-sub").textContent = t("js.sim.cost_sub", { nothing: fmtUsd(m.nothingPer1000), change });
+  $("o-sentence").textContent = t("js.sim.sentence", {
+    per: PER,
+    flagged: fmtNum(m.flaggedPer1000),
+    caught: fmtNum(m.fraudCaughtPer1000),
+    missed: fmtNum(m.fraudMissedPer1000),
+    usd: fmtUsd(m.missedUsdPer1000),
+  });
+  $("o-best").textContent = t("js.sim.best", {
+    t: fmtThr(best.threshold),
+    cost: fmtUsd(best.costPer1000),
+    per: PER,
+    recall: fmtPct(best.recall),
+  });
   drawChart(m);
 }
 
@@ -520,7 +540,7 @@ function onCostInput() {
   for (const k of PARAM_KEYS) inputs[k].setAttribute("aria-invalid", String(errors.some((e) => e.startsWith(k))));
   const box = $("cost-error");
   if (errors.length) {
-    box.textContent = "Enter non-negative numbers (share of amount lost: 0 to 2).";
+    box.textContent = t("js.sim.error", { max: DATA.ui.fn_frac_max });
     box.hidden = false;
     return;
   }
@@ -571,7 +591,12 @@ function drawChart(current) {
   const yOf = (v) => M.top + (1 - Math.min(v, yMax * 1.05) / yMax) * (H - M.top - M.bottom);
   const svg = el("svg", {
     viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img",
-    "aria-label": `Expected cost per 1,000 transactions against the threshold. Current threshold ${fmtThr(current.threshold)} costs ${fmtUsd(current.costPer1000)}; stepping up nobody costs ${fmtUsd(nothing)}.`,
+    "aria-label": t("js.chart.aria", {
+      per: PER,
+      t: fmtThr(current.threshold),
+      cost: fmtUsd(current.costPer1000),
+      nothing: fmtUsd(nothing),
+    }),
   });
   const clip = el("clipPath", { id: "plot-clip" }, el("defs", {}, svg));
   el("rect", { x: M.left, y: M.top, width: W - M.left - M.right, height: H - M.top - M.bottom }, clip);
@@ -586,9 +611,9 @@ function drawChart(current) {
     el("line", { x1: x, x2: x, y1: M.top, y2: H - M.bottom }, grid);
     el("text", { x, y: H - M.bottom + 16, "text-anchor": "middle" }, axes).textContent = e === 0 ? "1" : (10 ** e).toString();
   }
-  el("text", { x: (M.left + W - M.right) / 2, y: H - 4, "text-anchor": "middle", class: "axis-title" }, axes).textContent = "step-up threshold";
+  el("text", { x: (M.left + W - M.right) / 2, y: H - 4, "text-anchor": "middle", class: "axis-title" }, axes).textContent = t("js.chart.x");
   const yc = M.top + (H - M.top - M.bottom) / 2;
-  el("text", { x: 11, y: yc, "text-anchor": "middle", class: "axis-title", transform: `rotate(-90 11 ${yc})` }, axes).textContent = "USD / 1,000 txn";
+  el("text", { x: 11, y: yc, "text-anchor": "middle", class: "axis-title", transform: `rotate(-90 11 ${yc})` }, axes).textContent = t("js.chart.y", { per: PER });
   const plot = el("g", { "clip-path": "url(#plot-clip)" }, svg);
   el("line", { class: "ref", x1: M.left, x2: W - M.right, y1: yOf(nothing), y2: yOf(nothing) }, plot);
   let d = "";
@@ -630,7 +655,12 @@ box.addEventListener("pointermove", (evt) => {
   geom.hover.setAttribute("x2", x);
   geom.hover.setAttribute("visibility", "visible");
   tooltip.replaceChildren(
-    ...[["threshold", fmtThr(m.threshold)], ["cost / 1,000", fmtUsd(m.costPer1000)], ["recall", fmtPct(m.recall)], ["precision", fmtPct(m.precision)]].map(
+    ...[
+      [t("js.tip.threshold"), fmtThr(m.threshold)],
+      [t("js.tip.cost", { per: PER }), fmtUsd(m.costPer1000)],
+      [t("js.tip.recall"), fmtPct(m.recall)],
+      [t("js.tip.precision"), fmtPct(m.precision)],
+    ].map(
       ([k, v]) => {
         const row = h("div");
         row.append(h("span", null, k), h("strong", null, v));
@@ -680,34 +710,65 @@ function syncThemeButton() {
   const light = document.documentElement.dataset.theme === "light";
   const b = $("theme-toggle");
   b.setAttribute("aria-pressed", String(light));
+  b.querySelector(".sr-only").textContent = t(light ? "js.theme.dark" : "js.theme.light");
   document.querySelector('meta[name="theme-color"]').content = light ? "#f5f4f0" : "#0a0c0f";
 }
 const toggleTheme = () => setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
 
+// ---------------------------------------------------------------- language
+
+// Re-render everything the script writes; static text was swapped by setLang() (data-i18n).
+function rerenderTexts() {
+  renderSim();
+  renderStream();
+  renderCounters();
+  renderInspector();
+  renderPlayState();
+  renderPlayground();
+  syncThemeButton();
+  for (const v of Object.values(viz)) v.invalidate?.();
+  viz.pr?.render();
+  markDirty();
+  if (pal.open) renderPalette();
+}
+
+async function switchLang(next) {
+  try {
+    await setLang(next);
+  } catch (err) {
+    console.warn("language switch failed", err);
+    return;
+  }
+  rerenderTexts();
+}
+const toggleLang = () => switchLang(currentLang() === "en" ? "th" : "en");
+
+// [group key, label key, action]; labels are looked up when the palette renders (current language)
 const COMMANDS = [
-  ["section", "Decision flow", () => goTo("flow")],
-  ["section", "Live stream", () => goTo("stream")],
-  ["section", "Inspector", () => goTo("inspector")],
-  ["section", "Model, measured (headline metrics)", () => goTo("metrics")],
-  ["section", "Threshold & cost simulator", () => goTo("simulator")],
-  ["section", "Try it yourself", () => goTo("playground")],
-  ["report", "The problem", () => goTo("r-problem")],
-  ["report", "Data and its limits", () => goTo("r-data")],
-  ["report", "Main results (with CIs)", () => goTo("r-results")],
-  ["report", "What drives the score (SHAP)", () => goTo("r-drivers")],
-  ["report", "What didn't work (SMOTE, decline tier)", () => goTo("r-didnt-work")],
-  ["report", "Fairness by age", () => goTo("r-fairness")],
-  ["report", "How the evaluation stays honest", () => goTo("r-method")],
-  ["section", "Credits & data licence", () => goTo("credits")],
-  ["action", "Play / pause the stream  (P)", () => togglePlay()],
-  ["action", "Step one transaction  (.)", () => step()],
-  ["action", "Restart the stream", () => restart()],
-  ["action", "Threshold: project choice", () => setIndex(nearestIndex(D, D.chosen_threshold))],
-  ["action", "Threshold: lowest cost for current costs", () => setIndex(state.best)],
-  ["action", "Reset cost assumptions", () => resetCosts()],
-  ["action", "Try it yourself: load a random fraud", () => { preset("fraud"); goTo("playground"); }],
-  ["action", "Toggle light / dark  (T)", () => toggleTheme()],
-];
+  ["section", "flow", () => goTo("flow")],
+  ["section", "stream", () => goTo("stream")],
+  ["section", "inspector", () => goTo("inspector")],
+  ["section", "metrics", () => goTo("metrics")],
+  ["section", "sim", () => goTo("simulator")],
+  ["section", "pg", () => goTo("playground")],
+  ["report", "r1", () => goTo("r-problem")],
+  ["report", "r2", () => goTo("r-data")],
+  ["report", "r3", () => goTo("r-results")],
+  ["report", "r4", () => goTo("r-drivers")],
+  ["report", "r5", () => goTo("r-didnt-work")],
+  ["report", "r6", () => goTo("r-fairness")],
+  ["report", "r7", () => goTo("r-method")],
+  ["section", "credits", () => goTo("credits")],
+  ["action", "play", () => togglePlay()],
+  ["action", "step", () => step()],
+  ["action", "restart", () => restart()],
+  ["action", "thr_project", () => setIndex(nearestIndex(D, D.chosen_threshold))],
+  ["action", "thr_best", () => setIndex(state.best)],
+  ["action", "reset", () => resetCosts()],
+  ["action", "load_fraud", () => { preset("fraud"); goTo("playground"); }],
+  ["action", "theme", () => toggleTheme()],
+  ["action", "lang", () => toggleLang()],
+].map(([g, key, run]) => ({ group: () => t(`js.pal.group.${g}`), label: () => t(`js.pal.${key}`), run }));
 
 const pal = $("palette");
 const palInput = $("pal-input");
@@ -717,16 +778,16 @@ let palActive = 0;
 
 function renderPalette() {
   const q = palInput.value.trim().toLowerCase();
-  palItems = COMMANDS.filter(([g, label]) => !q || `${g} ${label}`.toLowerCase().includes(q));
+  palItems = COMMANDS.filter((c) => !q || `${c.group()} ${c.label()}`.toLowerCase().includes(q));
   palActive = Math.min(palActive, Math.max(0, palItems.length - 1));
   palList.replaceChildren(
     ...(palItems.length
-      ? palItems.map(([g, label], i) => {
+      ? palItems.map((c, i) => {
           const li = h("li");
           li.id = `pal-opt-${i}`;
           li.setAttribute("role", "option");
           li.setAttribute("aria-selected", String(i === palActive));
-          li.append(h("span", null, label), h("span", "grp", g));
+          li.append(h("span", null, c.label()), h("span", "grp", c.group()));
           li.addEventListener("click", () => runCommand(i));
           li.addEventListener("pointermove", () => {
             if (palActive !== i) {
@@ -736,7 +797,7 @@ function renderPalette() {
           });
           return li;
         })
-      : [h("li", "empty", "No match")]),
+      : [h("li", "empty", t("js.pal.empty"))]),
   );
   if (palItems.length) {
     palInput.setAttribute("aria-activedescendant", `pal-opt-${palActive}`);
@@ -757,7 +818,7 @@ function runCommand(i) {
   const cmd = palItems[i];
   if (!cmd) return;
   pal.close();
-  cmd[2]();
+  cmd.run();
 }
 
 palInput.addEventListener("input", () => {
@@ -790,6 +851,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "p" || e.key === "P") togglePlay();
   else if (e.key === ".") step();
   else if (e.key === "t" || e.key === "T") toggleTheme();
+  else if (e.key === "l" || e.key === "L") toggleLang();
   else if (e.key === "/") {
     e.preventDefault();
     openPalette();
@@ -803,6 +865,7 @@ function init() {
   $("cmd-key").textContent = isMac ? "⌘K" : "Ctrl K";
   $("open-palette").addEventListener("click", openPalette);
   $("theme-toggle").addEventListener("click", toggleTheme);
+  $("lang-toggle").addEventListener("click", toggleLang);
   syncThemeButton();
 
   for (const node of document.querySelectorAll("button[disabled], input[disabled], select[disabled]")) node.disabled = false;
@@ -851,7 +914,9 @@ function init() {
     selectLatest: (o) => {
       for (let i = state.played - 1; i >= 0; i--) if (outcomeOf(SCORES[i], Y[i], thr()) === o) return selectRow(i);
     },
-    setThreshold: (t) => setIndex(nearestIndex(D, t)),
+    setThreshold: (tv) => setIndex(nearestIndex(D, tv)),
+    dotEvery: DATA.ui.dot_every,
+    minLanePx: DATA.ui.min_lane_px,
     setIndex,
   };
   viz.flow = createFlow($("flow"), vizCtx);
@@ -883,4 +948,10 @@ function init() {
   requestAnimationFrame(loop);
 }
 
+// load the dictionary (and apply Thai if chosen) before anything is written by script
+try {
+  await setLang(initialLang(), { remember: false });
+} catch (err) {
+  console.warn("dictionary not loaded; keeping the prerendered English", err);
+}
 init();

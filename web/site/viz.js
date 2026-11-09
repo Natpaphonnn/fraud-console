@@ -3,6 +3,7 @@
 // Every visual reads the app state through `ctx` (scores, labels, rows played, threshold),
 // the same state the counters use; computations live in flow.js.
 import { convergence, dotVisible, laneCounts, outcomeOf, prCurve } from "./flow.js";
+import { currentLang, t } from "./i18n.js";
 
 export const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 export const X_MIN = 1e-4;
@@ -82,10 +83,10 @@ export function tweenNumber(el, value, fmt, ms = 260) {
 // ------------------------------------------------------------------ decision flow
 
 const OUTCOMES = [
-  ["tp", "●", "caught"],
-  ["fp", "○", "false alarm"],
-  ["fn", "×", "missed"],
-  ["tn", "·", "approved"],
+  ["tp", "●"],
+  ["fp", "○"],
+  ["fn", "×"],
+  ["tn", "·"],
 ];
 
 export function createFlow(root, ctx) {
@@ -99,19 +100,23 @@ export function createFlow(root, ctx) {
     return el;
   };
   const lbl = {
-    source: make("fl fl-source", "stream"),
-    model: make("fl fl-model", '<span class="k">model</span><b class="fl-score">—</b>'),
+    source: make("fl fl-source", `<span data-i18n="js.flow.stream">${t("js.flow.stream")}</span>`),
+    model: make(
+      "fl fl-model",
+      `<span class="k" data-i18n="js.flow.model">${t("js.flow.model")}</span><b class="fl-score">—</b>`,
+    ),
     step: make("fl fl-lane fl-step", '<span>STEP-UP</span> <b data-k="stepup">0</b>'),
     approve: make("fl fl-lane fl-approve", '<span>APPROVE</span> <b data-k="approve">0</b>'),
   };
   const buckets = {};
-  for (const [k, glyph, name] of OUTCOMES) {
+  for (const [k, glyph] of OUTCOMES) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = `fl fl-bucket fl-${k}`;
     b.dataset.outcome = k;
-    b.innerHTML = `<span class="g">${glyph}</span> <span class="nm">${name}</span> <b>0</b>`;
-    b.title = `Inspect the latest ${name} transaction`;
+    b.innerHTML =
+      `<span class="g">${glyph}</span> ` +
+      `<span class="nm" data-i18n="js.flow.${k}">${t(`js.flow.${k}`)}</span> <b>0</b>`;
     b.addEventListener("click", () => ctx.selectLatest(k));
     box.append(b);
     buckets[k] = b;
@@ -164,7 +169,7 @@ export function createFlow(root, ctx) {
 
   function thick(count, n) {
     if (!count || !n) return 0;
-    return Math.max(2, (cross() * L().S * count) / n);
+    return Math.max(ctx.minLanePx, (cross() * L().S * count) / n);
   }
 
   // band from (u0,v0) straight to u1, S-curve to (u2,v1), straight to u3; width in px
@@ -303,11 +308,13 @@ export function createFlow(root, ctx) {
   function updateLabels(c) {
     root.querySelector('[data-k="stepup"]').textContent = c.stepup.toLocaleString("en-US");
     root.querySelector('[data-k="approve"]').textContent = c.approve.toLocaleString("en-US");
-    for (const [k, , name] of OUTCOMES) {
+    for (const [k] of OUTCOMES) {
       const b = buckets[k];
+      const name = t(`js.flow.${k}`);
       b.dataset.count = String(c[k]);
       b.querySelector("b").textContent = c[k].toLocaleString("en-US");
-      b.setAttribute("aria-label", `${name}: ${c[k]} of ${c.n} rows played. Inspect the latest.`);
+      b.title = t("js.flow.bucket_title", { name });
+      b.setAttribute("aria-label", t("js.flow.bucket_aria", { name, count: c[k], n: c.n }));
       b.disabled = c[k] === 0;
     }
     lbl.step.dataset.count = String(c.stepup);
@@ -366,7 +373,7 @@ export function createFlow(root, ctx) {
 
   return {
     spawn(i, delay = 0) {
-      if (REDUCED || !dotVisible(i, ctx.y[i], view)) return;
+      if (REDUCED || !dotVisible(i, ctx.y[i], view, ctx.dotEvery)) return;
       dots.push({ i, t0: performance.now() + delay });
     },
     clear() {
@@ -376,7 +383,7 @@ export function createFlow(root, ctx) {
     },
     setView(v) {
       view = v;
-      dots = dots.filter((d) => dotVisible(d.i, ctx.y[d.i], view));
+      dots = dots.filter((d) => dotVisible(d.i, ctx.y[d.i], view, ctx.dotEvery));
     },
     refresh() {
       colors = palette();
@@ -409,8 +416,8 @@ export function createStrip(root, ctx) {
   function render() {
     if (!g) return;
     const n = ctx.played();
-    const t = ctx.thr();
-    const key = `${n},${t},${W},${colors.accent}`;
+    const thr = ctx.thr();
+    const key = `${n},${thr},${W},${colors.accent},${currentLang()}`;
     if (key === lastKey) return;
     lastKey = key;
     g.clearRect(0, 0, W, H);
@@ -431,9 +438,9 @@ export function createStrip(root, ctx) {
       }
     }
     g.globalAlpha = 1;
-    const hx = logPos(t) * (W - 8) + 4;
+    const hx = logPos(thr) * (W - 8) + 4;
     handle.style.left = `${hx}px`;
-    handle.setAttribute("aria-valuetext", `threshold ${ctx.fmtScore(t)}`);
+    handle.setAttribute("aria-valuetext", t("js.thr.valuetext", { t: ctx.fmtScore(thr) }));
     handle.setAttribute("aria-valuenow", String(ctx.index()));
     root.dataset.dots = String(n);
   }
@@ -483,28 +490,28 @@ export function createConvergence(root, ctx) {
 
   function render() {
     const n = ctx.played();
-    const t = ctx.thr();
+    const thr = ctx.thr();
     const W = Math.max(240, box.clientWidth);
-    const key = `${n},${t},${W},${colors.accent}`;
+    const key = `${n},${thr},${W},${colors.accent},${currentLang()}`;
     if (key === lastKey) return;
     lastKey = key;
     const H = 132;
     const M = { l: 34, r: 10, t: 8, b: 20 };
-    const c = convergence(ctx.scores, ctx.y, n, t);
+    const c = convergence(ctx.scores, ctx.y, n, thr);
     const full = ctx.full();
     const x = (j) => M.l + ((j + 1) / Math.max(n, 1)) * (W - M.l - M.r);
     const y = (v) => M.t + (1 - v) * (H - M.t - M.b);
     const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img" });
     s.setAttribute(
       "aria-label",
-      `Running recall and precision over the ${n} rows played, with 95% Wilson bands; dashed lines are the full-sample values.`,
+      t("js.conv.aria", { n, ci: "95%" }),
     );
     const axis = svg("g", { class: "axis" }, s);
     for (const v of [0, 0.5, 1]) {
       svg("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), class: "gridline" }, axis);
       svg("text", { x: M.l - 6, y: y(v) + 3.5, "text-anchor": "end" }, axis).textContent = `${v * 100}%`;
     }
-    svg("text", { x: M.l, y: H - 5 }, axis).textContent = "rows played →";
+    svg("text", { x: M.l, y: H - 5 }, axis).textContent = t("js.conv.x");
     svg("text", { x: W - M.r, y: H - 5, "text-anchor": "end" }, axis).textContent = n.toLocaleString("en-US");
     const stride = Math.max(1, Math.ceil(n / (W - M.l - M.r)));
     const idx = [];
@@ -563,7 +570,7 @@ export function createPR(root, ctx, d) {
   function render() {
     const W = Math.max(240, box.clientWidth);
     const i = ctx.index();
-    const key = `${W},${i}`;
+    const key = `${W},${i},${currentLang()}`;
     if (key === lastKey) return;
     lastKey = key;
     const H = Math.round(Math.min(300, Math.max(210, W * 0.5)));
@@ -578,13 +585,13 @@ export function createPR(root, ctx, d) {
       svg("text", { x: x(v), y: H - M.b + 15, "text-anchor": "middle" }, axis).textContent = `${v * 100}%`;
     }
     svg("text", { x: (M.l + W - M.r) / 2, y: H - 4, "text-anchor": "middle", class: "axis-title" }, axis).textContent =
-      "recall (fraud caught)";
+      t("js.pr.x");
     const yc = M.t + (H - M.t - M.b) / 2;
     svg("text", { x: 11, y: yc, "text-anchor": "middle", class: "axis-title", transform: `rotate(-90 11 ${yc})` }, axis).textContent =
-      "precision";
+      t("js.pr.y");
     svg("line", { x1: M.l, x2: W - M.r, y1: y(noSkill), y2: y(noSkill), class: "ref" }, s);
     svg("text", { x: W - M.r, y: y(noSkill) - 5, "text-anchor": "end", class: "note" }, s).textContent =
-      `random score ≈ ${noSkill.toFixed(4)}`;
+      t("js.pr.noskill", { x: noSkill.toFixed(4) });
     const dd = pts.map((p, k) => `${k ? "L" : "M"}${x(p.recall).toFixed(1)},${y(p.precision).toFixed(1)}`).join("");
     svg("path", { d: dd, class: "pr-line", pathLength: 1 }, s);
     const cur = pts.find((p) => p.i === i) ?? pts.reduce((a, b) => (Math.abs(b.i - i) < Math.abs(a.i - i) ? b : a));
@@ -592,13 +599,17 @@ export function createPR(root, ctx, d) {
     svg("circle", { cx: x(cur.recall), cy: y(cur.precision), r: 5, class: "pr-dot" }, g);
     const lx = x(cur.recall) > W * 0.6 ? x(cur.recall) - 10 : x(cur.recall) + 10;
     svg("text", { x: lx, y: y(cur.precision) - 9, "text-anchor": lx < x(cur.recall) ? "end" : "start", class: "note strong" }, g).textContent =
-      `threshold ${ctx.fmtScore(d.threshold[cur.i])}`;
+      t("js.pr.now", { t: ctx.fmtScore(d.threshold[cur.i]) });
     root.dataset.recall = String(cur.recall);
     root.dataset.precision = String(cur.precision);
     root.dataset.index = String(cur.i);
     s.setAttribute(
       "aria-label",
-      `Precision against recall across thresholds. At threshold ${ctx.fmtScore(d.threshold[cur.i])}: recall ${(100 * cur.recall).toFixed(1)}%, precision ${(100 * cur.precision).toFixed(1)}%.`,
+      t("js.pr.aria", {
+        t: ctx.fmtScore(d.threshold[cur.i]),
+        r: `${(100 * cur.recall).toFixed(1)}%`,
+        p: `${(100 * cur.precision).toFixed(1)}%`,
+      }),
     );
     box.replaceChildren(s);
     geom = { x, y, W, H, M };

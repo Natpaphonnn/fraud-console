@@ -91,6 +91,8 @@ def test_local_paths_are_relative(page):
         for spec in re.findall(r'from\s+"([^"]+)"', js):
             assert spec.startswith("./"), (name, spec)
         assert "fetch(" not in js
+    i18n = build_site()["i18n.js"].decode()  # the only fetch: the relative dictionary files
+    assert re.findall(r"fetch\(([^,)]+)", i18n) == ["`i18n/${next}.json`"]
 
 
 def test_csp_meta_matches_vercel_policy(page):

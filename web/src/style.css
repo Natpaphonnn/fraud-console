@@ -35,6 +35,21 @@
   color-scheme: light;
 }
 
+/* Thai: FraudThai = subset of IBM Plex Sans Thai Looped (SIL OFL 1.1, see fonts/OFL.txt).
+   Loaded only when the page is in Thai (it is not used by any English text). */
+@font-face { font-family: "FraudThai"; src: url("fonts/fraudthai-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "FraudThai"; src: url("fonts/fraudthai-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "FraudThai"; src: url("fonts/fraudthai-600.woff2") format("woff2"); font-weight: 600 700; font-style: normal; font-display: swap; }
+:root[lang="th"] {
+  --sans: "FraudThai", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "FraudThai", monospace;
+}
+:root[lang="th"] body, :root[lang="th"] button, :root[lang="th"] input, :root[lang="th"] select { font-family: var(--sans); }
+:root[lang="th"] * { letter-spacing: normal !important; } /* tracking breaks Thai vowel and tone marks */
+:root[lang="th"] .srow--head, :root[lang="th"] .panel-title, :root[lang="th"] .k { line-height: 1.45; }
+:root[lang="th"] h1 { line-height: 1.3; } /* room for Thai tone marks above the vowels */
+:root[lang="th"] h2, :root[lang="th"] h3 { line-height: 1.4; }
+
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: 64px; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); overflow-x: hidden; }
@@ -66,6 +81,10 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.015em; }
 .cmd, .icon-btn { font: 0.78rem var(--mono); color: var(--ink-2); background: transparent; border: 1px solid var(--line-2); border-radius: var(--r); min-height: 32px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 0 8px; }
 .cmd:hover, .icon-btn:hover { color: var(--ink); border-color: var(--ink-3); }
 .icon-btn { width: 34px; justify-content: center; padding: 0; }
+.lang-btn { font: 0.78rem var(--mono); background: transparent; border: 1px solid var(--line-2); border-radius: var(--r); min-height: 32px; padding: 0 9px; cursor: pointer; display: inline-flex; align-items: center; gap: 0; color: var(--ink-3); }
+.lang-btn:hover { border-color: var(--ink-3); }
+.lang-btn .lang-on { color: var(--ink); font-weight: 600; }
+.lang-btn .lang-sep { margin: 0 5px; color: var(--line-2); }
 .icon-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.3; }
 .icon-btn svg path { fill: currentColor; stroke: none; }
 @media (min-width: 900px) {

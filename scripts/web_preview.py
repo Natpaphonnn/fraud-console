@@ -22,6 +22,7 @@ import sys
 import tempfile
 import threading
 import time
+from collections import Counter
 from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
@@ -196,6 +197,108 @@ def record_video(browser, url: str, seconds: float = 8.0) -> None:
     )  # fmt: skip
     shutil.rmtree(frames, ignore_errors=True)
     print(f"wrote reports/web_preview/stream.webm + stream.gif ({k} frames, {fps:.1f} fps capture)")
+
+
+PAGE_NUMBERS = """() => {
+  // one text node at a time, so numbers in neighbouring elements never run together
+  const out = [];
+  for (const root of document.querySelectorAll('main, footer, .topbar')) {
+    const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    while (walk.nextNode()) {
+      out.push(...(walk.currentNode.textContent.match(/[-+−]?\\d[\\d,]*(?:\\.\\d+)?%?/g) || []));
+    }
+  }
+  return out.sort();
+}"""
+
+OVERFLOWING = """() => [...document.querySelectorAll(
+    '.k, .btn, .flag, .seg button, dt, .panel-title, .lang-btn, .cmd, .scope, .fl-bucket, .fl-lane,'
+    + ' .tile-label, legend, .field, .pg-field span, h1, h2, h3, .m-title, .m-sub')]
+  .filter(e => e.offsetParent !== null)
+  .filter(e => e.scrollWidth > e.clientWidth + 1
+    || e.getBoundingClientRect().right > innerWidth + 1)
+  .map(e => e.className + ': ' + e.textContent.trim().slice(0, 40))"""
+
+
+def thai_checks(browser, url: str, check: Checks) -> None:
+    """Thai: same numbers as English, Thai font loaded, palette translated, nothing overflows."""
+    page, errors = open_page(
+        browser, url, check, "thai desktop", viewport=DESKTOP, reduced_motion="reduce"
+    )
+    step_until_catch(page)
+    settle(page)
+    en_numbers = page.evaluate(PAGE_NUMBERS)
+    page.click("#lang-toggle")
+    page.wait_for_selector("html[lang='th']", state="attached")
+    settle(page)
+    th_numbers = page.evaluate(PAGE_NUMBERS)
+    only_en = sorted((Counter(en_numbers) - Counter(th_numbers)).elements())
+    only_th = sorted((Counter(th_numbers) - Counter(en_numbers)).elements())
+    check(
+        not only_en and not only_th,
+        f"switching EN -> TH keeps every number ({len(en_numbers)}; "
+        f"only EN {only_en[:8]}, only TH {only_th[:8]})",
+    )
+    page.evaluate("document.fonts.ready")
+    check(
+        page.evaluate("document.fonts.check('16px FraudThai', 'ทดสอบ')"),
+        "Thai font FraudThai is loaded",
+    )
+    check(
+        "ข้อจำกัด" in (page.get_attribute(".flags", "aria-label") or ""), "caveat labels are in Thai"
+    )
+    visuals_match_counters(page, check, "thai")
+    page.keyboard.press("Control+k")
+    first = page.text_content("#pal-list li") or ""
+    check(any("\u0e00" <= ch <= "\u0e7f" for ch in first), f"palette is in Thai ({first[:30]!r})")
+    page.keyboard.press("Escape")
+    page.reload(wait_until="networkidle")
+    page.wait_for_selector("#cost-chart svg")
+    check(page.get_attribute("html", "lang") == "th", "the language choice persists after reload")
+    step_until_catch(page)
+    page.evaluate("window.scrollTo(0, 0)")
+    settle(page)
+    page.screenshot(path=OUT / "desktop_th.png", full_page=True)
+    page.screenshot(path=OUT / "desktop_th_hero.png")
+    check(not errors, f"thai desktop: no HTTP or console errors {errors}")
+    page.close()
+
+    page, errors = open_page(
+        browser,
+        url + "?lang=th",
+        check,
+        "thai mobile",
+        viewport=MOBILE,
+        device_scale_factor=2,
+        is_mobile=True,
+        has_touch=True,
+        reduced_motion="reduce",
+    )
+    check(page.get_attribute("html", "lang") == "th", "?lang=th opens the page in Thai")
+    step_until_catch(page)
+    for d in page.query_selector_all("details"):
+        d.evaluate("e => e.open = true")
+    settle(page)
+    over = page.evaluate(OVERFLOWING)
+    check(not over, f"thai mobile: no text overflows its box {over[:5]}")
+    for d in page.query_selector_all("details"):
+        d.evaluate("e => e.open = false")
+    page.evaluate("window.scrollTo(0, 0)")
+    settle(page)
+    page.screenshot(path=OUT / "mobile_th.png", full_page=True)
+    page.screenshot(path=OUT / "mobile_th_hero.png")
+    check(not errors, f"thai mobile: no HTTP or console errors {errors}")
+    page.close()
+
+    ctx = browser.new_context(locale="th-TH", viewport=DESKTOP, reduced_motion="reduce")
+    page = ctx.new_page()
+    page.goto(url, wait_until="networkidle")
+    page.wait_for_selector("#cost-chart svg")
+    check(
+        page.get_attribute("html", "lang") == "th",
+        "a Thai browser (navigator.language th-TH) gets Thai",
+    )
+    ctx.close()
 
 
 def main() -> int:
@@ -399,6 +502,9 @@ def main() -> int:
             visuals_match_counters(page, check, "mobile 16x paused")
             check(not errors, f"mobile 16x: no console errors {errors}")
             page.close()
+
+            # 3c. Thai
+            thai_checks(browser, url, check)
 
             # 4. light theme (toggle, persists across reload)
             page, errors = open_page(
