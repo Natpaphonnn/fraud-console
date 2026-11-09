@@ -121,6 +121,12 @@ def main() -> int:
                 "outcomes label 'full sample' and 'played so far' separately",
             )
             check(page.text_content("#f-recall") not in ("", "—"), "full-sample recall shown")
+            note = page.locator(".scope-note")
+            check(
+                "not the model evaluation" in " ".join(note.text_content().split())
+                and note.locator('a[href="#metrics"]').count() == 1,
+                "full-sample note says it is a demo sample and links to Model, measured",
+            )
             text = page.text_content("main")
             check("e-" not in page.text_content("#s-rows"), "stream scores use no e-notation")
             check("<0.0001" in text, "scores below 0.0001 show as <0.0001")
