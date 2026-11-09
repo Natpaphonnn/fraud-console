@@ -61,3 +61,41 @@ def test_galaxy_uses_every_dev_row_and_no_holdout(dev):
     assert d["P"].shape == (len(dev), 3)
     assert int(d["y"].sum()) == int(dev[C.TARGET].sum())
     assert 0 < d["var"] <= 1
+
+
+def test_annotated_captions_quote_the_reports_and_stay_readable(dev):
+    land = cf.landscape_data(dev, n=15)
+    land["_contour"] = cf.threshold_contour(land)
+    web = json.loads((C.REPORTS_DIR / "p2_threshold_web.json").read_text())
+    thr = json.loads((C.REPORTS_DIR / "p2_threshold.json").read_text())
+    caps = {
+        "landscape": cf.annotations("landscape", land),
+        "cost_valley": cf.annotations("cost_valley", cf.cost_data()),
+        "galaxy": cf.annotations("galaxy", cf.galaxy_data(dev)),
+    }
+    assert caps["cost_valley"][2]["text"].startswith(
+        f"Cheapest point ≈ ${thr['cost_per_1000_txn']:,.0f}"
+    )
+    assert caps["cost_valley"][2]["small"] == "Illustrative assumed costs (not bank data)"
+    assert caps["galaxy"][0]["text"] == f"{web['n_rows']:,} transactions"
+    assert caps["galaxy"][1]["text"] == f"Gold = fraud ({web['n_fraud']:,})"
+    targets = {name: [c for c in cs if "target" in c] for name, cs in caps.items()}
+    assert all(len(t) == 1 for t in targets.values())  # threshold, cheapest point, fraud cluster
+    for cs in caps.values():
+        assert len(cs) == len(cf.ANNOT_WINDOWS) == 3
+        for c in cs:
+            assert all(len(line.split()) <= 8 for line in c["text"].split(" · "))
+
+
+def test_annotation_timing_holds_each_caption_and_loops_seamlessly():
+    total, fps = cf.ANNOT_SECONDS, cf.CLIP_FPS
+    times = np.arange(total * fps) / fps
+    alphas = np.array(
+        [[cf.caption_alpha(t, s, e, total) for s, e in cf.ANNOT_WINDOWS] for t in times]
+    )
+    assert alphas[0, 0] == 1.0  # text from the very first frame
+    held = (alphas >= 1.0).sum(axis=0) / fps
+    assert (held >= 1.5).all() and (held <= 2.5).all(), held  # ~1.5-2 s fully visible each
+    assert ((alphas > 0).sum(axis=1) <= 1).all()  # one caption at a time
+    # the last frame flows into the first: caption 1 is fading in at the end of the loop
+    assert 0 < alphas[-1, 0] < 1 and alphas[-1, 1:].sum() == 0

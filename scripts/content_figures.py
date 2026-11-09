@@ -3,6 +3,8 @@
     python scripts/content_figures.py --quick              # previews -> reports/content/preview/
     python scripts/content_figures.py --full [--only NAME] # stills + clips -> reports/content/
                                                            # (GitHub Actions only: content.yml)
+    python scripts/content_figures.py --annotated [--only NAME]  # annotated clips (Actions only)
+    python scripts/content_figures.py --annotated-preview  # a few low-res annotated frames
 
 Figures (every surface or point comes from the exported model or from reports/, nothing invented):
   landscape          P(fraud) over merchant_risk_score x velocity_score (linear 0-1: S-shaped cliff)
@@ -13,6 +15,11 @@ Figures (every surface or point comes from the exported model or from reports/, 
 Each still comes in two variants, "full" (title + explanation + credit) and "social" (title +
 credit); the full explanation is also written to <name>_caption.txt. Clips (~7 s, 30 fps, seamless
 loop, no audio): mp4 1080x1080 and 1080x1920 plus a downsized gif (<= 8 MB).
+
+Annotated clips (<name>_annotated_<size>.mp4 + <name>_annotated.gif, a separate set; the clean
+clips are unchanged): short captions fade in one after another (each held ~2 s) with an arrow to
+the point they talk about, in FraudMono (the website's monospace font, from web/src/fonts/), inside
+the 9:16 safe area. Every number in a caption comes from reports/*.json.
 """
 
 from __future__ import annotations
@@ -34,8 +41,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
-from matplotlib import animation  # noqa: E402
+from matplotlib import animation, font_manager  # noqa: E402
 from matplotlib.colors import to_rgba  # noqa: E402
+from mpl_toolkits.mplot3d import proj3d  # noqa: E402
 from sklearn.decomposition import PCA  # noqa: E402
 
 from fraud_e2e import config as C  # noqa: E402
@@ -360,6 +368,230 @@ def render(name: str, d: dict, w: int, h: int, variant: str, phase=None, fig_ax=
     return fig, ax, k
 
 
+# ----------------------------------------------------------------------------- annotated clips
+
+ANNOT_SECONDS = 8  # 3 captions, each held ~2 s
+FADE = 0.35  # seconds
+# caption windows in seconds (start, end) incl. fades; the first one wraps around the loop, so the
+# very first frame already shows text and the loop stays seamless
+ANNOT_WINDOWS = ((-FADE, 2.5), (2.5, 5.25), (5.25, 8.0 - FADE))
+CAPTION_PT, SMALL_PT = 34, 14  # at 1080 px; ~47 px caption text
+FONT_DIR = C.ROOT / "web" / "src" / "fonts"
+MONO = "FraudMono"
+
+
+def register_mono() -> set[int]:
+    """Make the website's FraudMono (woff2 subsets) available to matplotlib; returns its cmap."""
+    from tempfile import mkdtemp
+
+    from fontTools.ttLib import TTFont
+
+    tmp = Path(mkdtemp(prefix="fraudmono-"))
+    cmap: set[int] = set()
+    for weight in (400, 600):
+        font = TTFont(FONT_DIR / f"fraudmono-{weight}.woff2")
+        font.flavor = None
+        ttf = tmp / f"fraudmono-{weight}.ttf"
+        font.save(ttf)
+        font_manager.fontManager.addfont(str(ttf))
+        cmap |= set(font.getBestCmap())
+    return cmap
+
+
+def safe_box(w: int, h: int) -> tuple[float, float, float, float]:
+    """(left, right, top, bottom) in figure fractions where text may go. 9:16: clear of the top
+    ~270 px, the bottom ~350 px and the right ~130 px that phone apps cover with their UI."""
+    if h > w:
+        return 0.07, 0.88, 0.86, 0.185
+    return 0.06, 0.94, 0.95, 0.03
+
+
+def annotations(name: str, d: dict) -> list[dict]:
+    """Caption phrases (split at " · " into lines), optional 3-D target for an arrow, small note."""
+    web = _json("p2_threshold_web")
+    if name == "landscape":
+        seg = max(d["_contour"], key=len)
+        mid = seg[len(seg) // 2]
+        return [
+            {"text": "Fraud risk, as the model sees it"},
+            {"text": "Low risk → flat · red flags → it spikes"},
+            {"text": "Step-up threshold", "target": (mid[0], mid[1], d["thr"] + 0.01)},
+        ]
+    if name == "cost_valley":
+        px, py, pz, _ = d["project"]
+        lift = 0.012 * (d["Z"].max() - d["Z"].min())
+        return [
+            {"text": "What does each threshold cost?"},
+            {"text": "Too strict: annoy customers · too loose: miss fraud"},
+            {
+                "text": f"Cheapest point ≈ ${pz:,.0f} · per 1,000 txns",
+                "target": (px, py, pz + lift),
+                "small": COST_LABEL,
+            },
+        ]
+    y = d["y"]
+    n, n_fraud = web["n_rows"], web["n_fraud"]
+    if (len(y), int(y.sum())) != (n, n_fraud):  # the plotted rows are the dev split of the report
+        raise SystemExit(f"galaxy rows {len(y)}/{int(y.sum())} != report {n}/{n_fraud}")
+    centre = np.median(d["P"][y == 1], axis=0)
+    return [
+        {"text": f"{n:,} transactions"},
+        {"text": f"Gold = fraud ({n_fraud:,})"},
+        {"text": "Fraud clusters — · the model learns this", "target": tuple(centre)},
+    ]
+
+
+def wrap(fig, phrase: str, size: float, width_px: float, weight=600, max_words=8) -> list[str]:
+    """Break at " · " and newlines, then greedy word-wrap so every line fits (measured)."""
+    renderer = fig.canvas.get_renderer()
+    probe = fig.text(0, 0, "", fontsize=size, family=MONO, weight=weight)
+    lines: list[str] = []
+    for part in phrase.replace(" · ", "\n").split("\n"):
+        line = ""
+        for word in part.split():
+            trial = f"{line} {word}".strip()
+            probe.set_text(trial)
+            if line and probe.get_window_extent(renderer).width > width_px:
+                lines.append(line)
+                line = word
+            else:
+                line = trial
+        lines.append(line)
+    probe.set_text("")
+    for line in lines:
+        probe.set_text(line)
+        if probe.get_window_extent(renderer).width > width_px or len(line.split()) > max_words:
+            raise SystemExit(f"caption line does not fit: {line!r}")
+    probe.remove()
+    return lines
+
+
+def caption_alpha(t: float, start: float, end: float, total: float) -> float:
+    """Fade in/out over FADE seconds inside [start, end); windows may wrap around the loop."""
+    for shift in (0.0, total, -total):
+        u = t + shift
+        if start <= u < end:
+            return float(min(1.0, (u - start) / FADE, (end - u) / FADE))
+    return 0.0
+
+
+def annotated_canvas(name: str, d: dict, w: int, h: int, cmap: set[int]):
+    plt.rcParams["font.family"] = MONO  # axes, ticks and credit in the website's font too
+    fig = plt.figure(figsize=(w / 100, h / 100), dpi=100, facecolor=BG)
+    k = min(w, h) / 1080
+    left, right, top, bottom = safe_box(w, h)
+    rect = [0.0, 0.24, 1.0, 0.52] if h > w else [0.02, 0.09, 0.96, 0.66]
+    ax = fig.add_axes(rect, projection="3d", facecolor=BG)
+    t = texts(name, d)
+    link = load_links().get("github", "").replace("https://", "")
+    credit = t["credit"] + (f"\n{link}" if link else "")
+    credit_lines = wrap(fig, credit, 9.5 * k, (right - left) * w, weight=400, max_words=99)
+    fig.text(left, bottom, "\n".join(credit_lines), color=MUTED, fontsize=9.5 * k, va="bottom",
+             linespacing=1.5)  # fmt: skip
+    caps = []
+    for spec in annotations(name, d):
+        lines = wrap(fig, spec["text"], CAPTION_PT * k, (right - left) * w)
+        caps.append({**spec, "lines": lines})
+    used = "".join(c["text"] + c.get("small", "") for c in caps) + credit
+    missing = sorted({ch for ch in used if ord(ch) not in cmap and not ch.isspace()})
+    if missing:
+        raise SystemExit(f"FraudMono lacks {missing}: rebuild it with `make fonts`")
+    return fig, ax, k, caps
+
+
+def draw_captions(fig, ax, k, caps, t: float, total: float, w: int, h: int) -> list:
+    """Captions visible at time t (with arrow + ring when they point at something)."""
+    left, _, top, _ = safe_box(w, h)
+    line_h = CAPTION_PT * k * 1.3 / 72 * 100 / h  # figure fraction per caption line
+    artists = []
+    for cap, (start, end) in zip(caps, ANNOT_WINDOWS, strict=True):
+        a = caption_alpha(t, start, end, total)
+        if a <= 0:
+            continue
+        body = "\n".join(cap["lines"])
+        size = CAPTION_PT * k
+        artists.append(
+            fig.text(left, top, body, color=INK, alpha=a, fontsize=size, weight=600, va="top",
+                     linespacing=1.3)
+        )  # fmt: skip
+        y_end = top - len(cap["lines"]) * line_h
+        if "small" in cap:
+            artists.append(fig.text(left, y_end - 0.006, cap["small"], color=MUTED, alpha=a,
+                                    fontsize=SMALL_PT * k, va="top"))  # fmt: skip
+            y_end -= SMALL_PT * k * 1.4 / 72 * 100 / h
+        if "target" in cap:
+            x2, y2, _ = proj3d.proj_transform(*cap["target"], ax.get_proj())
+            ax.scatter(*([v] for v in cap["target"]), s=900 * k**2, facecolors="none",
+                       edgecolors=INK, linewidths=3 * k, alpha=a, depthshade=False,
+                       zorder=9)  # fmt: skip
+            ax.annotate("", xy=(x2, y2), xycoords="data", xytext=(left + 0.05, y_end - 0.012),
+                        textcoords="figure fraction", annotation_clip=False,
+                        arrowprops={"arrowstyle": "-|>", "color": INK, "alpha": a, "lw": 3 * k,
+                                    "mutation_scale": 26 * k, "shrinkA": 0, "shrinkB": 18 * k,
+                                    "connectionstyle": "arc3,rad=-0.2"})  # fmt: skip
+    return artists
+
+
+def annotated_frame(name, d, fig_ax_caps, phase: float, w: int, h: int) -> list:
+    fig, ax, k, caps = fig_ax_caps
+    scene, _, (elev, azim), hide, _ = FIGURES[name]
+    ax.cla()
+    style(ax, k, hide)
+    # landscape: the true surface from the first frame (no rise from flat); cost: one dot only
+    scene(ax, d, k, phase if name == "galaxy" else None)
+    for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
+        axis.label.set_fontsize(12 * k)
+    # a gentle sway (not a full turn) so the arrows' targets stay readable; seamless loop
+    ax.view_init(
+        elev=elev + 4 * np.sin(2 * np.pi * phase), azim=azim + 18 * np.sin(2 * np.pi * phase)
+    )
+    return draw_captions(fig, ax, k, caps, phase * ANNOT_SECONDS, ANNOT_SECONDS, w, h)
+
+
+def save_annotated_clip(name: str, d: dict, label: str, w: int, h: int, cmap: set[int]) -> Path:
+    if not shutil.which("ffmpeg"):
+        raise SystemExit("ffmpeg is required for clips")
+    fig, ax, k, caps = annotated_canvas(name, d, w, h, cmap)
+    path = OUT / f"{name}_annotated_{label}.mp4"
+    args = [
+        "-pix_fmt",
+        "yuv420p",
+        "-crf",
+        "20",
+        "-preset",
+        "slow",
+        "-an",
+        "-movflags",
+        "+faststart",
+    ]
+    writer = animation.FFMpegWriter(fps=CLIP_FPS, codec="libx264", extra_args=args)
+    n = ANNOT_SECONDS * CLIP_FPS
+    with writer.saving(fig, str(path), dpi=100):
+        for i in range(n):
+            artists = annotated_frame(name, d, (fig, ax, k, caps), i / n, w, h)
+            writer.grab_frame(facecolor=BG)
+            for a in artists:
+                a.remove()
+    plt.close(fig)
+    print("wrote", path.relative_to(C.ROOT))
+    return path
+
+
+def annotated_preview(name: str, d: dict, folder: Path, cmap: set[int]) -> None:
+    """Low-res frames in the middle of each caption (layout check; no video)."""
+    for label, (w, h) in {"square": (540, 540), "vertical": (540, 960)}.items():
+        fig, ax, k, caps = annotated_canvas(name, d, w, h, cmap)
+        for j, (start, end) in enumerate(ANNOT_WINDOWS):
+            mid = ((start + end) / 2) % ANNOT_SECONDS
+            artists = annotated_frame(name, d, (fig, ax, k, caps), mid / ANNOT_SECONDS, w, h)
+            out = folder / f"{name}_annotated_{label}_{j + 1}.png"
+            fig.savefig(out, facecolor=BG, dpi=100)
+            for a in artists:
+                a.remove()
+        plt.close(fig)
+        print("wrote", out.parent / f"{name}_annotated_{label}_*.png")
+
+
 # ----------------------------------------------------------------------------- output
 
 
@@ -433,6 +665,9 @@ def main() -> None:
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--quick", action="store_true", help="low-res previews (full + social)")
     mode.add_argument("--full", action="store_true", help="all stills and clips (GitHub Actions)")
+    mode.add_argument("--annotated", action="store_true", help="annotated clips (GitHub Actions)")
+    mode.add_argument("--annotated-preview", metavar="DIR", type=Path,
+                      help="a few low-res annotated frames into DIR (layout check)")  # fmt: skip
     ap.add_argument("--only", choices=["landscape", "cost_valley", "galaxy"], help="one family")
     args = ap.parse_args()
 
@@ -440,6 +675,23 @@ def main() -> None:
     land = landscape_data(dev)
     land["_contour"] = threshold_contour(land)
     data = {"landscape": land, "cost": cost_data(), "galaxy": galaxy_data(dev)}
+    if args.annotated or args.annotated_preview:
+        cmap = register_mono()
+        for name in ("landscape", "cost_valley", "galaxy"):
+            if args.only and name != args.only:
+                continue
+            d = data[FIGURES[name][1]]
+            if args.annotated_preview:
+                args.annotated_preview.mkdir(parents=True, exist_ok=True)
+                annotated_preview(name, d, args.annotated_preview, cmap)
+                continue
+            OUT.mkdir(parents=True, exist_ok=True)
+            clips = {
+                lbl: save_annotated_clip(name, d, lbl, w, h, cmap)
+                for lbl, (w, h) in CLIP_SIZES.items()
+            }
+            make_gif(clips["1080x1080"], f"{name}_annotated")
+        return
     folder = OUT / "preview" if args.quick else OUT
     folder.mkdir(parents=True, exist_ok=True)
     for name, (_, key, _, _, has_clip) in FIGURES.items():

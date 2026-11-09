@@ -1,10 +1,18 @@
 # Render the content figures on GitHub runners (never on the shared laptop): stills (full + social,
 # 1080x1080 and 1920x1080), caption .txt files, ~7 s looping clips (mp4 1080x1080 and 1080x1920,
 # gif <= 8 MB). Run by hand: Actions -> Content figures -> Run workflow.
+# "set": clean (stills + clean clips), annotated (<name>_annotated_*.mp4 + gif, captions + arrows,
+# a separate set), or both.
 name: Content figures
 
 on:
   workflow_dispatch:
+    inputs:
+      set:
+        description: Which renders
+        type: choice
+        options: [annotated, clean, both]
+        default: annotated
 
 permissions:
   contents: read
@@ -31,13 +39,17 @@ jobs:
           ffmpeg -version | head -n 1
       - name: Install (locked)
         run: uv sync --locked
-      - name: Render ${{ matrix.figure }}
+      - name: Render ${{ matrix.figure }} (clean)
+        if: inputs.set == 'clean' || inputs.set == 'both'
         run: uv run python scripts/content_figures.py --full --only ${{ matrix.figure }}
+      - name: Render ${{ matrix.figure }} (annotated)
+        if: inputs.set == 'annotated' || inputs.set == 'both'
+        run: uv run python scripts/content_figures.py --annotated --only ${{ matrix.figure }}
       - name: List outputs
         run: ls -la reports/content
       - uses: actions/upload-artifact@v7
         with:
-          name: content-${{ matrix.figure }}
+          name: content-${{ matrix.figure }}-${{ inputs.set }}
           path: |
             reports/content/*.png
             reports/content/*.mp4
