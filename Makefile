@@ -1,4 +1,4 @@
-.PHONY: check lint test notebooks kaggle docs web-model web-serve web-preview web-live kaggle-test
+.PHONY: check lint test notebooks kaggle docs web-model web-serve web-preview web-live kaggle-test content-preview
 
 check: lint test
 
@@ -48,3 +48,7 @@ web-live:
 # run the Kaggle story + 08/09 editions in a simulated Kaggle layout
 kaggle-test:
 	uv run python scripts/test_kaggle.py
+
+# low-res content previews (full renders + clips run on GitHub Actions: content.yml)
+content-preview:
+	OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 nice -n 19 uv run python scripts/content_figures.py --quick

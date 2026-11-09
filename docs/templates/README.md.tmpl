@@ -80,6 +80,7 @@ make notebooks       # re-execute notebooks 00–06 in order; results land in re
 make docs            # regenerate README.md, docs/model_card.md and web/site/ from reports/
 make web-serve       # preview the project page at http://localhost:8000
 make kaggle          # rebuild Kaggle editions
+make content-preview # low-res previews of the 3-D content figures (full renders: Actions → Content figures)
 ```
 
 The whole pipeline runs on a laptop in a few minutes (seed 42, deterministic).

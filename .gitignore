@@ -51,3 +51,7 @@ CLAUDE.md
 .claude/
 notes/interview_notes_th.md
 docs/templates/interview_notes_th.md.tmpl
+
+# Content renders come from GitHub Actions (content.yml artifacts); only previews are committed
+reports/content/*
+!reports/content/preview/

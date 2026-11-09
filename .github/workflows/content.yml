@@ -1,0 +1,41 @@
+# Render the content figures (stills at 1080x1080 and 1920x1080, ~8 s rotating clips as mp4 + gif)
+# on a GitHub runner, never on the shared laptop. Run by hand: Actions -> Content figures -> Run workflow.
+name: Content figures
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: ffmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
+          ffmpeg -version | head -n 1
+      - name: Install (locked)
+        run: uv sync --locked
+      - name: Render stills and clips
+        run: uv run python scripts/content_figures.py --full
+      - name: List outputs
+        run: ls -la reports/content
+      - uses: actions/upload-artifact@v7
+        with:
+          name: content-figures
+          path: |
+            reports/content/*.png
+            reports/content/*.mp4
+            reports/content/*.gif
+          if-no-files-found: error
+          retention-days: 30
