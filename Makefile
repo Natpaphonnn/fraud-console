@@ -9,7 +9,7 @@ lint:
 # pytest + generated-file freshness + Node tests of the in-browser model and simulator (needs node)
 test:
 	uv run pytest -q
-	node --test web/tests/
+	node --test "web/tests/*.test.mjs"
 	uv run python scripts/render_docs.py --check
 	uv run python scripts/build_web.py --check
 
