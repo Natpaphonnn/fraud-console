@@ -205,12 +205,12 @@ def caption_file(t: dict) -> str:
 def canvas(w: int, h: int, variant: str, t: dict):
     fig = plt.figure(figsize=(w / 100, h / 100), dpi=100, facecolor=BG)
     k = min(w, h) / 1080
-    if h > w:  # vertical 9:16
-        rect = [-0.06, 0.2, 1.12, 0.62]
+    if h > w:  # vertical 9:16: the rotating plot gets the full width of the middle band
+        rect = [0.0, 0.15, 1.0, 0.68]
     elif w > h:
-        rect = [0.2, 0.08, 0.6, 0.76] if variant == "full" else [0.12, 0.05, 0.76, 0.84]
+        rect = [0.2, 0.08, 0.6, 0.76] if variant == "full" else [0.12, 0.1, 0.76, 0.8]
     else:
-        rect = [0.02, 0.12, 0.96, 0.7] if variant == "full" else [0.0, 0.07, 1.0, 0.82]
+        rect = [0.02, 0.12, 0.96, 0.7] if variant == "full" else [0.02, 0.13, 0.96, 0.76]
     ax = fig.add_axes(rect, projection="3d", facecolor=BG)
     fs = 10 * k
     top = 0.955 if h <= w else 0.94
@@ -219,15 +219,11 @@ def canvas(w: int, h: int, variant: str, t: dict):
         fig.text(0.05, top - 0.065 * 1080 / h, t["body"], color=MUTED, fontsize=1.15 * fs,
                  va="top", linespacing=1.5)  # fmt: skip
     fig.text(0.05, 0.03, t["credit"], color=MUTED, fontsize=fs, va="bottom", linespacing=1.5)
-    link = load_links().get("github", "")
-    if link:
-        if w >= h:
-            fig.text(0.95, 0.03, link.replace("https://", ""), color=ACCENT, fontsize=fs,
-                     ha="right", va="bottom")  # fmt: skip
-        else:
-            fig.text(
-                0.05, 0.07, link.replace("https://", ""), color=ACCENT, fontsize=fs, va="bottom"
-            )
+    link = load_links().get("github", "").replace("https://", "")
+    if link and w >= h:  # top right, on the title line: never collides with the credit lines
+        fig.text(0.95, top - 0.012, link, color=ACCENT, fontsize=1.1 * fs, ha="right", va="top")
+    elif link:  # vertical: under the title
+        fig.text(0.05, top - 0.04, link, color=ACCENT, fontsize=1.1 * fs, va="top")
     return fig, ax, k
 
 
@@ -355,6 +351,8 @@ def render(name: str, d: dict, w: int, h: int, variant: str, phase=None, fig_ax=
         ax.cla()
     style(ax, k, hide)
     scene(ax, d, k, phase)
+    for axis in (ax.xaxis, ax.yaxis, ax.zaxis):  # axis titles scale with the canvas like the ticks
+        axis.label.set_fontsize(12 * k)
     if phase is None:
         ax.view_init(elev=elev, azim=azim)
     else:  # one full turn per loop, gentle bob
