@@ -17,8 +17,9 @@ git status         # commit web/site/ together with any change to web/src/, repo
 
 ## 2. Option A — Vercel dashboard + GitHub (recommended)
 
-1. Push the repository to GitHub.
-2. On <https://vercel.com/new>, choose **Import Git Repository** and pick the repo.
+1. The repository is on GitHub: <https://github.com/Natpaphonnn/fraud-console>.
+2. On <https://vercel.com/new>, choose **Import Git Repository** and pick `Natpaphonnn/fraud-console`
+   (first time: allow the Vercel GitHub app to see this repository).
 3. Configure the project:
    - **Root Directory:** `web/site` (click *Edit* next to Root Directory)
    - **Framework Preset:** `Other`

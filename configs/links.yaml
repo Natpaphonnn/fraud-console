@@ -1,6 +1,6 @@
 # Public links (filled in by Nat). Leave a value empty ("") until it exists.
 # After editing, run `make docs` — README.md and the website (web/site/) are regenerated.
-github: ""   # e.g. https://github.com/<user>/fraud-e2e
+github: "https://github.com/Natpaphonnn/fraud-console"
 kaggle: ""   # Kaggle notebook (or profile/collection) URL
 medium: ""   # Medium article URL
 website: ""  # deployed Vercel URL, e.g. https://fraud-e2e.vercel.app
