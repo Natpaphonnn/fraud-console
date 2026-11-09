@@ -126,7 +126,9 @@ def build_pipeline(spec: dict):
         )
     elif spec["imbalance"] not in {"none", "class_weight"}:
         raise ValueError(f"unknown imbalance strategy {spec['imbalance']!r}")
-    steps += [("prep", make_preprocessor(kind, spec["drop"])), ("model", _estimator(spec))]
+    # "transform" (A6) is only present in specs that use it, so older spec ids are unchanged
+    prep = make_preprocessor(kind, spec["drop"], spec.get("transform"))
+    steps += [("prep", prep), ("model", _estimator(spec))]
     pipe = Pipeline(steps)
     if spec["calibration"]:
         return CalibratedClassifierCV(pipe, method=spec["calibration"], cv=5, ensemble=True)

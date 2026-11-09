@@ -8,7 +8,13 @@ import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
+from sklearn.preprocessing import (
+    FunctionTransformer,
+    OneHotEncoder,
+    PolynomialFeatures,
+    SplineTransformer,
+    StandardScaler,
+)
 
 from fraud_e2e import config as C
 
@@ -32,8 +38,25 @@ def feature_frame(df: pd.DataFrame, drop: Sequence[str] = ()) -> pd.DataFrame:
     return X
 
 
-def make_preprocessor(kind: str, drop: Sequence[str] = ()) -> ColumnTransformer:
-    """'linear': one-hot + log1p(heavy tails) + standardise; 'tree': one-hot, raw numerics."""
+TRANSFORMS = (None, "spline", "flag_pairs")  # P5 / pre-registration A6
+
+
+def _spline():
+    return SplineTransformer(n_knots=5, degree=3, knots="quantile")
+
+
+def make_preprocessor(
+    kind: str, drop: Sequence[str] = (), transform: str | None = None
+) -> ColumnTransformer:
+    """'linear': one-hot + log1p(heavy tails) + standardise; 'tree': one-hot, raw numerics.
+
+    transform (linear only, A6): "spline" expands every numeric input with cubic B-splines
+    (after log1p for LOG_COLS); "flag_pairs" adds the pairwise products of the boolean flags.
+    """
+    if transform not in TRANSFORMS:
+        raise ValueError(f"unknown transform {transform!r}")
+    if transform and kind != "linear":
+        raise ValueError("transforms are defined for the linear preprocessor only")
     cols = feature_list(drop)
     cats = [c for c in C.CATEGORICAL_COLS if c in cols]
     bools = [c for c in C.BOOLEAN_COLS if c in cols]
@@ -42,17 +65,21 @@ def make_preprocessor(kind: str, drop: Sequence[str] = ()) -> ColumnTransformer:
     if kind == "linear":
         logs = [c for c in nums if c in LOG_COLS]
         plain = [c for c in nums if c not in LOG_COLS]
+        log1p = FunctionTransformer(np.log1p, feature_names_out="one-to-one")
+        if transform == "spline":
+            log_step, num_step = make_pipeline(log1p, _spline()), _spline()
+        else:
+            log_step, num_step = make_pipeline(log1p, StandardScaler()), StandardScaler()
+        bool_step = (
+            PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+            if transform == "flag_pairs"
+            else "passthrough"
+        )
         transformers = [
             ("cat", onehot, cats),
-            ("bool", "passthrough", bools),
-            (
-                "log",
-                make_pipeline(
-                    FunctionTransformer(np.log1p, feature_names_out="one-to-one"), StandardScaler()
-                ),
-                logs,
-            ),
-            ("num", StandardScaler(), plain),
+            ("bool", bool_step, bools),
+            ("log", log_step, logs),
+            ("num", num_step, plain),
         ]
     elif kind == "tree":
         transformers = [
