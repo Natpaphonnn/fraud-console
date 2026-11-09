@@ -235,7 +235,7 @@ FONT_FAMILIES = """() => {
 }"""
 
 
-def thai_checks(browser, url: str, check: Checks) -> None:
+def thai_checks(browser, url: str, check: Checks, shots: bool = True) -> None:
     """Thai: same numbers as English, Thai font loaded, palette translated, nothing overflows."""
     page, errors = open_page(
         browser, url, check, "thai desktop", viewport=DESKTOP, reduced_motion="reduce"
@@ -286,8 +286,9 @@ def thai_checks(browser, url: str, check: Checks) -> None:
     step_until_catch(page)
     page.evaluate("window.scrollTo(0, 0)")
     settle(page)
-    page.screenshot(path=OUT / "desktop_th.png", full_page=True)
-    page.screenshot(path=OUT / "desktop_th_hero.png")
+    if shots:
+        page.screenshot(path=OUT / "desktop_th.png", full_page=True)
+        page.screenshot(path=OUT / "desktop_th_hero.png")
     check(not errors, f"thai desktop: no HTTP or console errors {errors}")
     page.close()
 
@@ -313,8 +314,9 @@ def thai_checks(browser, url: str, check: Checks) -> None:
         d.evaluate("e => e.open = false")
     page.evaluate("window.scrollTo(0, 0)")
     settle(page)
-    page.screenshot(path=OUT / "mobile_th.png", full_page=True)
-    page.screenshot(path=OUT / "mobile_th_hero.png")
+    if shots:
+        page.screenshot(path=OUT / "mobile_th.png", full_page=True)
+        page.screenshot(path=OUT / "mobile_th_hero.png")
     check(not errors, f"thai mobile: no HTTP or console errors {errors}")
     page.close()
 

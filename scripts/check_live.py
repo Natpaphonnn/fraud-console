@@ -1,7 +1,8 @@
 """Smoke-test the deployed page (default: the GitHub Pages URL in configs/links.yaml).
 
 Desktop and mobile: no HTTP errors (404s), no console errors, the decision flow animates,
-and after pausing every visual matches the counters. Uses the installed Google Chrome.
+and after pausing every visual matches the counters. Thai: same checks as make web-preview
+(numbers equal English, fonts load, no overflow on mobile). Uses the installed Google Chrome.
 
     uv run --with playwright python scripts/check_live.py [URL]      # (make web-live)
 """
@@ -11,7 +12,14 @@ from __future__ import annotations
 import sys
 
 from playwright.sync_api import sync_playwright
-from web_preview import MOBILE, Checks, measure_fps, open_page, visuals_match_counters
+from web_preview import (
+    MOBILE,
+    Checks,
+    measure_fps,
+    open_page,
+    thai_checks,
+    visuals_match_counters,
+)
 
 from fraud_e2e.summary import load_links
 
@@ -46,6 +54,8 @@ def run(url: str) -> int:
             visuals_match_counters(page, check, name)
             check(not errors, f"{name}: no HTTP or console errors {errors}")
             page.close()
+        # Thai: ?lang=th, toggle, Thai browser; numbers equal English, fonts load, no overflow
+        thai_checks(browser, url, check, shots=False)
         browser.close()
     if check.failures:
         print(f"{len(check.failures)} check(s) failed")
