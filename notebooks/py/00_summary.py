@@ -113,8 +113,8 @@ display(
 - **Gradient boosting:** tuning helped LightGBM ({c["tuning_diff"]} {c["tuning_ci"]}) and pushed it
   to tiny trees, but it still trailed logistic regression.
 - **Calibration:** {c["calibration_verdict"]}.
-- **Three-tier policy (add "decline"):** cheaper on CV ({c["tt_cv_diff"]} per 1,000) but not on the
-  holdout: {c["ho_tt_diff"]} {c["ho_tt_diff_ci"]}. The simpler two-tier policy is recommended.
+- **Three-tier policy (add "decline"):** cheaper on CV ({c["tt_cv_diff"]} per 1,000) but not
+  distinguishable on the holdout: {c["ho_tt_diff"]} {c["ho_tt_diff_ci"]}. The simpler two-tier policy is recommended.
 """)
 )
 fig("p2_imbalance_folds")
@@ -125,8 +125,8 @@ display(
 ## 6. What drives the score
 
 Top drivers by mean |SHAP|: {c["shap_top3"]} ({c["shap_top3_share"]} of the total). A false alarm
-and a caught fraud can carry the same red flags; separating them needs information this dataset does
-not have (customer history), not a different algorithm.
+and a caught fraud can carry the same red flags; separating them more likely needs information this
+dataset does not have (customer history) than a different algorithm.
 """)
 )
 fig("p2_shap_global", 520)
