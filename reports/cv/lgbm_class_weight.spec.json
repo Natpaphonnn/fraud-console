@@ -1,0 +1,12 @@
+{
+  "name": "lgbm_class_weight",
+  "spec": {
+    "params": {},
+    "imbalance": "class_weight",
+    "drop": [],
+    "calibration": null,
+    "model": "lgbm"
+  },
+  "spec_id": "c527d6ce4b22",
+  "seconds": 4.6
+}

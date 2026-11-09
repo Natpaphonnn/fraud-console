@@ -40,3 +40,8 @@ web/.vercel/
 .DS_Store
 .vscode/
 .idea/
+
+# CV out-of-fold predictions: only the ones later stages read are versioned
+reports/cv/*.oof.csv.gz
+!reports/cv/final*.oof.csv.gz
+!reports/cv/logreg*.oof.csv.gz

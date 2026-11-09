@@ -1,0 +1,12 @@
+{
+  "name": "logreg_sigmoid",
+  "spec": {
+    "params": {},
+    "imbalance": "none",
+    "drop": [],
+    "calibration": "sigmoid",
+    "model": "logreg"
+  },
+  "spec_id": "e48b88a1d1df",
+  "seconds": 1.3
+}

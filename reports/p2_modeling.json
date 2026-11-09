@@ -1,0 +1,223 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "final_pipeline": {
+    "name": "logreg",
+    "spec": {
+      "params": {},
+      "imbalance": "none",
+      "drop": [],
+      "calibration": null,
+      "model": "logreg"
+    },
+    "spec_id": "9d9523a408a3",
+    "pr_auc": {
+      "mean": 0.41509213333333334,
+      "sd": 0.06171861082117158,
+      "ci_low": 0.3406015418051289,
+      "ci_high": 0.48958272486153775
+    },
+    "roc_auc": {
+      "mean": 0.9424503333333332,
+      "sd": 0.011719768346483568,
+      "ci_low": 0.9283052891548013,
+      "ci_high": 0.9565953775118651
+    },
+    "brier": {
+      "mean": 0.012547726666666668,
+      "sd": 0.000741944988783503,
+      "ci_low": 0.01165224440676928,
+      "ci_high": 0.013443208926564056
+    }
+  },
+  "defaults": {
+    "logreg": {
+      "C": 1.0,
+      "max_iter": 2000
+    },
+    "lgbm": {
+      "n_estimators": 300,
+      "learning_rate": 0.05,
+      "num_leaves": 15,
+      "min_child_samples": 20,
+      "subsample": 0.8,
+      "subsample_freq": 1,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 0.0
+    },
+    "xgb": {
+      "n_estimators": 300,
+      "learning_rate": 0.05,
+      "max_depth": 4,
+      "min_child_weight": 0.33228779999999997,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 1.0
+    }
+  },
+  "decisions": [
+    {
+      "step": "1. boosting library",
+      "a": "lgbm",
+      "b": "xgb",
+      "metric": "pr_auc",
+      "mean_diff_b_minus_a": -0.00392601989830671,
+      "ci_low": -0.034639407952488634,
+      "ci_high": 0.026787368155875214,
+      "p_value": 0.7879631207200878,
+      "n_folds": 15,
+      "b_wins_per_folds": 8,
+      "lower_is_better": false,
+      "verdict": "not distinguishable",
+      "chosen": "lgbm"
+    },
+    {
+      "step": "2. imbalance: class_weight",
+      "a": "lgbm",
+      "b": "lgbm_class_weight",
+      "metric": "pr_auc",
+      "mean_diff_b_minus_a": -0.022525008309437152,
+      "ci_low": -0.058252939510593196,
+      "ci_high": 0.013202922891718896,
+      "p_value": 0.1977514390140954,
+      "n_folds": 15,
+      "b_wins_per_folds": 2,
+      "lower_is_better": false,
+      "verdict": "not distinguishable",
+      "chosen": "lgbm"
+    },
+    {
+      "step": "2. imbalance: undersample",
+      "a": "lgbm",
+      "b": "lgbm_undersample",
+      "metric": "pr_auc",
+      "mean_diff_b_minus_a": -0.004836754794090259,
+      "ci_low": -0.03614160810305788,
+      "ci_high": 0.026468098514877365,
+      "p_value": 0.7452655603968344,
+      "n_folds": 15,
+      "b_wins_per_folds": 5,
+      "lower_is_better": false,
+      "verdict": "not distinguishable",
+      "chosen": "lgbm"
+    },
+    {
+      "step": "2. imbalance: smote",
+      "a": "lgbm",
+      "b": "lgbm_smote",
+      "metric": "pr_auc",
+      "mean_diff_b_minus_a": -0.17736304267555505,
+      "ci_low": -0.22937890022543228,
+      "ci_high": -0.12534718512567783,
+      "p_value": 3.830396571054136e-06,
+      "n_folds": 15,
+      "b_wins_per_folds": 0,
+      "lower_is_better": false,
+      "verdict": "a better",
+      "chosen": "lgbm"
+    },
+    {
+      "step": "3. tuning",
+      "a": "lgbm",
+      "b": "lgbm_tuned",
+      "metric": "pr_auc",
+      "mean_diff_b_minus_a": 0.050146375056174364,
+      "ci_low": 0.014121619593493381,
+      "ci_high": 0.08617113051885535,
+      "p_value": 0.009829213252426111,
+      "n_folds": 15,
+      "b_wins_per_folds": 15,
+      "lower_is_better": false,
+      "verdict": "b better",
+      "chosen": "lgbm_tuned"
+    },
+    {
+      "step": "4. boosting vs logistic",
+      "a": "logreg",
+      "b": "lgbm_tuned",
+      "metric": "pr_auc",
+      "mean_diff_b_minus_a": -0.048384566312167025,
+      "ci_low": -0.08427516358437814,
+      "ci_high": -0.012493969039955914,
+      "p_value": 0.01184123555799934,
+      "n_folds": 15,
+      "b_wins_per_folds": 0,
+      "lower_is_better": false,
+      "verdict": "a better",
+      "chosen": "logreg"
+    },
+    {
+      "a": "logreg_no_ai_flag",
+      "b": "logreg",
+      "metric": "pr_auc",
+      "mean_diff_b_minus_a": 0.02826174790321019,
+      "ci_low": 0.011250608948669121,
+      "ci_high": 0.04527288685775126,
+      "p_value": 0.0031176331488022625,
+      "n_folds": 15,
+      "b_wins_per_folds": 15,
+      "lower_is_better": false,
+      "verdict": "b better",
+      "step": "5. ablation (reported only)"
+    },
+    {
+      "step": "6. calibration: sigmoid",
+      "a": "logreg",
+      "b": "logreg_sigmoid",
+      "metric": "brier",
+      "mean_diff_b_minus_a": -1.2401638546690255e-05,
+      "ci_low": -9.373808071181408e-05,
+      "ci_high": 6.893480361843356e-05,
+      "p_value": 0.748488853519534,
+      "n_folds": 15,
+      "b_wins_per_folds": 5,
+      "lower_is_better": true,
+      "verdict": "not distinguishable",
+      "chosen": "logreg"
+    },
+    {
+      "step": "6. calibration: isotonic",
+      "a": "logreg",
+      "b": "logreg_isotonic",
+      "metric": "brier",
+      "mean_diff_b_minus_a": 5.5662671811585485e-05,
+      "ci_low": -5.211769593090087e-05,
+      "ci_high": 0.00016344303955407184,
+      "p_value": 0.28667462205598665,
+      "n_folds": 15,
+      "b_wins_per_folds": 11,
+      "lower_is_better": true,
+      "verdict": "not distinguishable",
+      "chosen": "logreg"
+    }
+  ],
+  "ablation_ai_flag": {
+    "a": "logreg_no_ai_flag",
+    "b": "logreg",
+    "metric": "pr_auc",
+    "mean_diff_b_minus_a": 0.02826174790321019,
+    "ci_low": 0.011250608948669121,
+    "ci_high": 0.04527288685775126,
+    "p_value": 0.0031176331488022625,
+    "n_folds": 15,
+    "b_wins_per_folds": 15,
+    "lower_is_better": false,
+    "verdict": "b better",
+    "step": "5. ablation (reported only)"
+  },
+  "tuning": {
+    "n_trials": 20,
+    "scored_on": "repeat r0",
+    "best_params": {
+      "num_leaves": 7,
+      "learning_rate": 0.0226,
+      "n_estimators": 800,
+      "min_child_samples": 10,
+      "subsample": 1.0,
+      "colsample_bytree": 0.7,
+      "reg_lambda": 10.0
+    }
+  }
+}

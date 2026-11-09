@@ -1,0 +1,12 @@
+{
+  "name": "logreg_isotonic",
+  "spec": {
+    "params": {},
+    "imbalance": "none",
+    "drop": [],
+    "calibration": "isotonic",
+    "model": "logreg"
+  },
+  "spec_id": "4b966c6c11a0",
+  "seconds": 1.3
+}

@@ -1,0 +1,20 @@
+{
+  "name": "lgbm_tuned",
+  "spec": {
+    "params": {
+      "num_leaves": 7,
+      "learning_rate": 0.0226,
+      "n_estimators": 800,
+      "min_child_samples": 10,
+      "subsample": 1.0,
+      "colsample_bytree": 0.7,
+      "reg_lambda": 10.0
+    },
+    "imbalance": "none",
+    "drop": [],
+    "calibration": null,
+    "model": "lgbm"
+  },
+  "spec_id": "264fe101fbb9",
+  "seconds": 5.9
+}

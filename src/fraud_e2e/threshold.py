@@ -20,10 +20,23 @@ from fraud_e2e.cost import (
     scaled,
 )
 
+NEAR_OPTIMAL_TOL = 0.01  # thresholds within 1% of the minimum cost are "near-optimal"
+
 
 def threshold_grid() -> np.ndarray:
-    """Dense near 0 (where cost-optimal thresholds for a rare class live), covers [0, 1]."""
-    return np.unique(np.r_[0.0, np.geomspace(1e-4, 1.0, 481), np.linspace(0, 1, 201)])
+    """Fine grid for 1-D optimisation: dense near 0 (rare-class thresholds), covers [0, 1]."""
+    return np.unique(np.r_[0.0, np.geomspace(1e-4, 1.0, 4001), np.linspace(0, 1, 1001)])
+
+
+def web_grid(extra=()) -> np.ndarray:
+    """Coarser grid for the website export and the 2-D three-tier search, plus extra points."""
+    return np.unique(np.r_[0.0, np.geomspace(1e-4, 1.0, 481), np.linspace(0, 1, 201), extra])
+
+
+def near_optimal_range(grid: np.ndarray, mean_curve: np.ndarray, tol=NEAR_OPTIMAL_TOL):
+    """Lowest and highest threshold whose mean cost is within `tol` of the minimum."""
+    ok = mean_curve <= mean_curve.min() * (1 + tol)
+    return float(grid[ok].min()), float(grid[ok].max())
 
 
 def confusion_per_repeat(oof: pd.DataFrame, grid: np.ndarray) -> dict[int, dict]:
@@ -74,6 +87,7 @@ def choose_threshold(oof: pd.DataFrame, p: CostParams, grid: np.ndarray | None =
         "cost_per_1000_txn": float(mean_curve[i] / n_rows * 1000),
         "cost_sd_across_repeats": float(curves[:, i].std(ddof=1)) if len(curves) > 1 else None,
         "best_threshold_per_repeat": per_repeat_best,
+        "near_optimal_range": near_optimal_range(grid, mean_curve),
         "flag_nothing_cost_usd": nothing,
         "saving_vs_flag_nothing": float(1 - mean_curve[i] / nothing),
         "n_rows": n_rows,
@@ -98,10 +112,13 @@ def sensitivity(oof: pd.DataFrame, base: CostParams, factors=(0.5, 2.0)) -> pd.D
         p = base if r["parameter"] == "(base)" else scaled(base, r["parameter"], r["factor"])
         mean_curve = cost_curves(conf, p).mean(axis=0)
         i = int(np.argmin(mean_curve))
+        lo, hi = near_optimal_range(grid, mean_curve)
         out.append(
             {
                 **r,
                 "best_threshold": float(grid[i]),
+                "near_optimal_low": lo,
+                "near_optimal_high": hi,
                 "cost_per_1000_txn": float(mean_curve[i] / n_rows * 1000),
                 "cost_per_1000_at_base_threshold": float(mean_curve[base_i] / n_rows * 1000),
                 "regret_per_1000_txn": float((mean_curve[base_i] - mean_curve[i]) / n_rows * 1000),
@@ -117,7 +134,7 @@ def sensitivity(oof: pd.DataFrame, base: CostParams, factors=(0.5, 2.0)) -> pd.D
 
 def export_for_web(oof: pd.DataFrame, grid: np.ndarray | None = None) -> dict:
     """Per-threshold sufficient statistics (mean over repeats) for the static website."""
-    grid = threshold_grid() if grid is None else grid
+    grid = web_grid() if grid is None else grid
     conf = confusion_per_repeat(oof, grid)
     n_rows = int(oof.groupby("repeat").size().iloc[0])
     keys = ["tp", "fp", "fn", "tn", "fn_amount_usd"]
@@ -185,7 +202,7 @@ def choose_three_tier(
     oof: pd.DataFrame, p: CostParams, q: ThreeTierParams, grid: np.ndarray | None = None
 ) -> dict:
     require_usable(p, q)
-    grid = threshold_grid() if grid is None else grid
+    grid = web_grid() if grid is None else grid
     grid = np.r_[grid, np.inf]  # last column = "never decline" (two-tier)
     mats = [
         three_tier_cost_matrix(g["y"].to_numpy(), g["score"], g["amount_usd"], grid, p, q)

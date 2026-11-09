@@ -146,3 +146,53 @@ def auc_forest(table: pd.DataFrame, ax=None):
     ax.set_xlabel("Univariate ROC AUC (95% bootstrap CI); >0.5 orange = higher value → more fraud")
     ax.grid(axis="y", visible=False)
     return ax
+
+
+SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
+
+
+def fold_dots(results: list, metric: str = "pr_auc", ax=None, xlabel: str | None = None):
+    """Per-fold metric for each pipeline (dots), with mean and corrected 95% CI (bar)."""
+    from fraud_e2e.cv import metric_ci
+
+    ax = ax or plt.subplots(figsize=(7, 0.55 * len(results) + 1.3))[1]
+    rng = np.random.default_rng(0)
+    for i, res in enumerate(results):
+        v = res.folds[metric].to_numpy()
+        ci = metric_ci(res, metric)
+        y = len(results) - 1 - i
+        ax.scatter(
+            v,
+            y + rng.uniform(-0.12, 0.12, len(v)),
+            s=14,
+            color=SERIES[0],
+            alpha=0.45,
+            lw=0,
+            zorder=2,
+        )
+        ax.hlines(y, ci["ci_low"], ci["ci_high"], color=INK, lw=2, zorder=3)
+        ax.scatter([ci["mean"]], [y], s=60, color=FRAUD, zorder=4, edgecolor="#fcfcfb", lw=1.5)
+    ax.set_yticks(range(len(results)), [r.name for r in results][::-1])
+    ax.set_xlabel(xlabel or f"{metric} per validation fold (dots); mean ± corrected 95% CI")
+    ax.grid(axis="y", visible=False)
+    return ax
+
+
+def pr_curves(results: list, ax=None, repeat: int = 0):
+    """Precision-recall curves of OOF predictions (one repeat), with the no-skill line."""
+    from sklearn.metrics import precision_recall_curve
+
+    ax = ax or plt.subplots(figsize=(5.5, 4))[1]
+    base = None
+    for i, res in enumerate(results):
+        o = res.oof[res.oof["repeat"] == repeat]
+        prec, rec, _ = precision_recall_curve(o["y"], o["score"])
+        ax.plot(rec * 100, prec * 100, color=SERIES[i % len(SERIES)], lw=2, label=res.name)
+        base = o["y"].mean()
+    ax.axhline(base * 100, color=NEUTRAL, ls="--", lw=1, label=f"No skill ({100 * base:.2f}%)")
+    ax.set_xlabel("Recall (% of fraud caught)")
+    ax.set_ylabel("Precision (% of alerts that are fraud)")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.legend(loc="upper right")
+    return ax

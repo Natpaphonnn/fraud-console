@@ -1,0 +1,169 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "pipelines": {
+    "logreg": {
+      "pr_auc": {
+        "mean": 0.41509201832829473,
+        "sd": 0.061718468673454416,
+        "ci_low": 0.340601598363698,
+        "ci_high": 0.48958243829289144
+      },
+      "roc_auc": {
+        "mean": 0.9424503070813233,
+        "sd": 0.01171962869700607,
+        "ci_low": 0.9283054314511765,
+        "ci_high": 0.95659518271147
+      },
+      "brier": {
+        "mean": 0.012547715047247467,
+        "sd": 0.0007419547240878686,
+        "ci_low": 0.011652221037432652,
+        "ci_high": 0.013443209057062283
+      },
+      "spec": {
+        "params": {},
+        "imbalance": "none",
+        "drop": [],
+        "calibration": null,
+        "model": "logreg"
+      }
+    },
+    "logreg_balanced": {
+      "pr_auc": {
+        "mean": 0.3913918324410293,
+        "sd": 0.06304079853682241,
+        "ci_low": 0.3153054411412531,
+        "ci_high": 0.46747822374080555
+      },
+      "roc_auc": {
+        "mean": 0.9351740166428224,
+        "sd": 0.013192915870152267,
+        "ci_low": 0.9192509734298607,
+        "ci_high": 0.9510970598557841
+      },
+      "brier": {
+        "mean": 0.08899265725041751,
+        "sd": 0.003548454691967393,
+        "ci_low": 0.08470988928952539,
+        "ci_high": 0.09327542521130963
+      },
+      "spec": {
+        "params": {},
+        "imbalance": "class_weight",
+        "drop": [],
+        "calibration": null,
+        "model": "logreg"
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "a": "logreg",
+      "b": "logreg_balanced",
+      "metric": "pr_auc",
+      "mean_diff_b_minus_a": -0.023700185887265347,
+      "ci_low": -0.046744861566404394,
+      "ci_high": -0.0006555102081263024,
+      "p_value": 0.04461283857474692,
+      "n_folds": 15,
+      "b_wins_per_folds": 2,
+      "lower_is_better": false,
+      "verdict": "a better",
+      "chosen": "logreg"
+    },
+    {
+      "a": "logreg",
+      "b": "logreg_balanced",
+      "metric": "roc_auc",
+      "mean_diff_b_minus_a": -0.007276290438500792,
+      "ci_low": -0.013964672038546098,
+      "ci_high": -0.0005879088384554846,
+      "p_value": 0.03506004694720311,
+      "n_folds": 15,
+      "b_wins_per_folds": 1,
+      "lower_is_better": false,
+      "verdict": "a better",
+      "chosen": "logreg"
+    },
+    {
+      "a": "logreg",
+      "b": "logreg_balanced",
+      "metric": "brier",
+      "mean_diff_b_minus_a": 0.07644494220317007,
+      "ci_low": 0.07180219898705399,
+      "ci_high": 0.08108768541928614,
+      "p_value": 4.37312675890602e-15,
+      "n_folds": 15,
+      "b_wins_per_folds": 15,
+      "lower_is_better": true,
+      "verdict": "a better",
+      "chosen": "logreg"
+    }
+  ],
+  "chosen_baseline": "logreg",
+  "top_coefficients": [
+    {
+      "input": "ip_country_mismatch",
+      "coef": 2.468109757569748
+    },
+    {
+      "input": "billing_shipping_mismatch",
+      "coef": 2.4482232259005383
+    },
+    {
+      "input": "is_ai_generated_scam_attempt",
+      "coef": 2.4077172722345184
+    },
+    {
+      "input": "auth_method_No Authentication",
+      "coef": 1.5640113354393315
+    },
+    {
+      "input": "used_vpn",
+      "coef": 1.5421083039305374
+    },
+    {
+      "input": "is_new_merchant",
+      "coef": 1.3922600924436583
+    },
+    {
+      "input": "is_foreign_transaction",
+      "coef": 1.1906712164147106
+    },
+    {
+      "input": "merchant_risk_score",
+      "coef": 1.0465608836441107
+    },
+    {
+      "input": "auth_method_Biometric",
+      "coef": -1.0187898995143283
+    },
+    {
+      "input": "cvv_retry_count",
+      "coef": 0.8234009558980688
+    },
+    {
+      "input": "velocity_score",
+      "coef": 0.8037344622648618
+    },
+    {
+      "input": "auth_method_PIN",
+      "coef": -0.761436800157614
+    },
+    {
+      "input": "merchant_category_Crypto Exchange",
+      "coef": -0.6416396599296484
+    },
+    {
+      "input": "merchant_category_Streaming",
+      "coef": 0.5480279615149353
+    },
+    {
+      "input": "merchant_category_Utilities",
+      "coef": 0.5286660775103706
+    }
+  ]
+}

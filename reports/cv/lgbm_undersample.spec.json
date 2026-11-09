@@ -1,0 +1,12 @@
+{
+  "name": "lgbm_undersample",
+  "spec": {
+    "params": {},
+    "imbalance": "undersample",
+    "drop": [],
+    "calibration": null,
+    "model": "lgbm"
+  },
+  "spec_id": "d2d3851b80f8",
+  "seconds": 3.7
+}

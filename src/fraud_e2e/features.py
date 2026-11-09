@@ -45,7 +45,13 @@ def make_preprocessor(kind: str, drop: Sequence[str] = ()) -> ColumnTransformer:
         transformers = [
             ("cat", onehot, cats),
             ("bool", "passthrough", bools),
-            ("log", make_pipeline(FunctionTransformer(np.log1p), StandardScaler()), logs),
+            (
+                "log",
+                make_pipeline(
+                    FunctionTransformer(np.log1p, feature_names_out="one-to-one"), StandardScaler()
+                ),
+                logs,
+            ),
             ("num", StandardScaler(), plain),
         ]
     elif kind == "tree":

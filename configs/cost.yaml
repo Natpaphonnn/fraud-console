@@ -13,7 +13,7 @@ sensitivity_factors: [0.5, 2.0]
 # Supplementary three-tier policy (approve / step-up / decline).
 # status must be "accepted" before these are used. See notes/01_cost_assumptions.md.
 three_tier:
-  status: proposed
+  status: accepted        # accepted by Nat on 2026-11-09 as illustrative
   params:
     stepup_fraud_pass_rate: 0.2   # share of fraud that still gets through step-up
     decline_fp_cost: 50.0         # USD per good customer hard-declined

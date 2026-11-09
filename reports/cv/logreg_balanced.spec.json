@@ -1,0 +1,12 @@
+{
+  "name": "logreg_balanced",
+  "spec": {
+    "params": {},
+    "imbalance": "class_weight",
+    "drop": [],
+    "calibration": null,
+    "model": "logreg"
+  },
+  "spec_id": "e95a67dece1b",
+  "seconds": 0.3
+}

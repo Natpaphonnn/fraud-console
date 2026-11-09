@@ -94,3 +94,13 @@ def test_cv_is_deterministic(dev):
     a = run_cv(dev, FAST_LGBM, "a", repeats=(0,))
     b = run_cv(dev, FAST_LGBM, "b", repeats=(0,))
     pd.testing.assert_series_equal(a.oof["score"], b.oof["score"])
+
+
+@pytest.mark.parametrize("model", ["logreg", "lgbm"])
+def test_feature_names_map_back_to_sources(dev, model):
+    from fraud_e2e.features import feature_list, source_feature
+
+    spec = {**FAST_LGBM, "model": model} if model == "lgbm" else {"model": "logreg"}
+    pipe = fit_pipeline(spec, feature_frame(dev.iloc[:3000]), dev[C.TARGET].iloc[:3000].to_numpy())
+    names = pipe.named_steps["prep"].get_feature_names_out()
+    assert {source_feature(n) for n in names} == set(feature_list())

@@ -1,0 +1,14 @@
+{
+  "name": "logreg_no_ai_flag",
+  "spec": {
+    "params": {},
+    "imbalance": "none",
+    "drop": [
+      "is_ai_generated_scam_attempt"
+    ],
+    "calibration": null,
+    "model": "logreg"
+  },
+  "spec_id": "fe0ddf815a46",
+  "seconds": 0.3
+}

@@ -1,0 +1,10 @@
+step,a,b,metric,mean_diff_b_minus_a,ci_low,ci_high,p_value,n_folds,b_wins_per_folds,lower_is_better,verdict,chosen
+1. boosting library,lgbm,xgb,pr_auc,-0.00392602,-0.0346394,0.0267874,0.787963,15,8,False,not distinguishable,lgbm
+2. imbalance: class_weight,lgbm,lgbm_class_weight,pr_auc,-0.022525,-0.0582529,0.0132029,0.197751,15,2,False,not distinguishable,lgbm
+2. imbalance: undersample,lgbm,lgbm_undersample,pr_auc,-0.00483675,-0.0361416,0.0264681,0.745266,15,5,False,not distinguishable,lgbm
+2. imbalance: smote,lgbm,lgbm_smote,pr_auc,-0.177363,-0.229379,-0.125347,3.8304e-06,15,0,False,a better,lgbm
+3. tuning,lgbm,lgbm_tuned,pr_auc,0.0501464,0.0141216,0.0861711,0.00982921,15,15,False,b better,lgbm_tuned
+4. boosting vs logistic,logreg,lgbm_tuned,pr_auc,-0.0483846,-0.0842752,-0.012494,0.0118412,15,0,False,a better,logreg
+5. ablation (reported only),logreg_no_ai_flag,logreg,pr_auc,0.0282617,0.0112506,0.0452729,0.00311763,15,15,False,b better,
+6. calibration: sigmoid,logreg,logreg_sigmoid,brier,-1.24016e-05,-9.37381e-05,6.89348e-05,0.748489,15,5,True,not distinguishable,logreg
+6. calibration: isotonic,logreg,logreg_isotonic,brier,5.56627e-05,-5.21177e-05,0.000163443,0.286675,15,11,True,not distinguishable,logreg

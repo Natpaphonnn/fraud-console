@@ -1,0 +1,10 @@
+feature,real_fraud_mean,synthetic_fraud_mean,legit_mean,n_real_fraud,n_synthetic
+is_foreign_transaction,0.230415,0.0557157,0.0564253,217,1041
+is_new_merchant,0.497696,0.512968,0.228642,217,1041
+used_vpn,0.207373,0.0355427,0.0871016,217,1041
+ip_country_mismatch,0.313364,0.179635,0.0542001,217,1041
+billing_shipping_mismatch,0.207373,0.0259366,0.0406898,217,1041
+is_ai_generated_scam_attempt,0.0875576,0.0144092,0.0169276,217,1041
+cvv_retry_count,0.700461,0.35927,0.176746,217,1041
+merchant_risk_score,50.1129,49.4028,37.2471,217,1041
+velocity_score,28.7806,27.8952,19.7072,217,1041

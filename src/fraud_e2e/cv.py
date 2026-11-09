@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from dataclasses import dataclass, field
 
@@ -155,3 +156,54 @@ def pick(
     better = test["verdict"] == "b better"
     test["chosen"] = complex_.name if better else simpler.name
     return (complex_ if better else simpler), test
+
+
+def metric_ci(res: CVResult, metric: str = "pr_auc", alpha: float = 0.05) -> dict:
+    """Mean over folds with a 95% interval using the same corrected variance as the paired test."""
+    v = res.folds[metric].to_numpy()
+    J = len(v)
+    ratio = float(res.folds["n_val"].mean() / res.folds["n_train"].mean())
+    se = np.sqrt((1 / J + ratio) * v.var(ddof=1))
+    t = ss.t.ppf(1 - alpha / 2, J - 1)
+    return {
+        "mean": float(v.mean()),
+        "sd": float(v.std(ddof=1)),
+        "ci_low": float(v.mean() - t * se),
+        "ci_high": float(v.mean() + t * se),
+    }
+
+
+CV_DIR = C.REPORTS_DIR / "cv"
+
+
+def save_result(res: CVResult, folder=CV_DIR, with_oof: bool = True) -> None:
+    """Fold metrics + spec (always committed) and OOF predictions (gzip CSV)."""
+    folder.mkdir(parents=True, exist_ok=True)
+    res.folds.to_csv(folder / f"{res.name}.folds.csv", index=False, float_format="%.6g")
+    meta = {
+        "name": res.name,
+        "spec": res.spec,
+        "spec_id": spec_id(res.spec),
+        "seconds": round(res.seconds, 1),
+        **res.extra,
+    }
+    (folder / f"{res.name}.spec.json").write_text(json.dumps(meta, indent=2, default=str) + "\n")
+    if with_oof:
+        res.oof.to_csv(folder / f"{res.name}.oof.csv.gz", index=False, float_format="%.6g")
+
+
+def load_result(name: str, folder=CV_DIR) -> CVResult:
+    meta = json.loads((folder / f"{name}.spec.json").read_text())
+    folds = pd.read_csv(folder / f"{name}.folds.csv")
+    oof_path = folder / f"{name}.oof.csv.gz"
+    oof = pd.read_csv(oof_path) if oof_path.exists() else pd.DataFrame()
+    return CVResult(name=name, spec=meta["spec"], folds=folds, oof=oof, seconds=meta["seconds"])
+
+
+def verdict_text(test: dict) -> str:
+    """Human wording of a paired-test verdict, naming the winner."""
+    if test["verdict"] == "b better":
+        return f"`{test['b']}` is better"
+    if test["verdict"] == "a better":
+        return f"`{test['a']}` is better"
+    return "not distinguishable"

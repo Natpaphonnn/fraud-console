@@ -1,0 +1,12 @@
+{
+  "name": "xgb",
+  "spec": {
+    "params": {},
+    "imbalance": "none",
+    "drop": [],
+    "calibration": null,
+    "model": "xgb"
+  },
+  "spec_id": "81953b83dcdc",
+  "seconds": 2.7
+}
