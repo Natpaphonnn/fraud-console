@@ -93,3 +93,43 @@ Reporting: mean and standard deviation across the 15 folds, plus a 95% interval.
 ### A4 — 2026-11-09 — after the holdout was scored (disclosure, not a change)
 
 The holdout was scored once with the frozen choices in `notes/holdout_lock.json`. Afterwards, two **descriptive** metrics were added and are labelled post-hoc wherever shown: (a) the two-tier saving relative to "step-up nobody", because absolute cost per 1,000 is dominated by the few fraud amounts in a sample; (b) a like-for-like comparison of three-tier vs two-tier under the three-tier cost model (the two-tier threshold for that model, 0.1166, had been chosen on dev OOF before the holdout). Both reuse the saved holdout scores (`reports/p2_holdout_scores.csv.gz`); no model was refit and no threshold or choice was changed.
+
+### A5 — 2026-11-09 — P5 fairness by age, written before any age-group result
+
+Question: does the final pipeline (logistic regression, step-up threshold 0.0695) treat age groups
+differently, and does it need `customer_age` at all? Model choice and threshold are **not** revisited
+(the holdout has been used); P5 is descriptive.
+
+- **Groups:** `customer_age` 18–29, 30–44, 45–59, 60+ (conventional bands). Fixed after a label-free look
+  at the dev age distribution only (sizes 3,000 / 3,652 / 3,808 / 5,540 rows; ages 18–81).
+- **Data:** dev out-of-fold scores of the final pipeline from CV repeat r0 (every dev row scored once, by a
+  model that did not train on it). The holdout is **not** used. Repeats r1 and r2 are reported as point
+  estimates only, as a stability check.
+- **Threshold:** the project threshold 0.0695 for every group (no per-group thresholds).
+- **Metrics per group:** rows, fraud cases, step-up rate, recall (TPR), precision, false-positive rate (good
+  customers stepped up / all good customers). PR-AUC per group is descriptive only (base rates differ).
+- **Uncertainty:** stratified bootstrap within each group (fraud and legit resampled separately), 2,000
+  resamples, seed 42, percentile intervals.
+- **Rule for "differs":** each group is compared with all other dev rows (group − rest), bootstrapping
+  both sides independently. 4 groups × 4 metrics (step-up rate, recall, precision, FPR) = 16 comparisons,
+  so a gap is called **real only if its Bonferroni-adjusted interval (1 − 0.05/16 = 99.69%) excludes 0**.
+  Otherwise it is reported as **"not distinguishable"**. A non-significant gap is never reported as
+  "fair" or "no difference", and the interval width is shown.
+- **Model without `customer_age`:** the final spec with `drop = ["customer_age"]` on the same 15 folds,
+  corrected resampled t-test on PR-AUC (§3 rule). Its per-group step-up rate and FPR at 0.0695 are
+  reported descriptively.
+- **Not claimed:** no causal or legal fairness claim. Age is the only person attribute in the data, and
+  the data's provenance is unspecified.
+
+### A6 — 2026-11-09 — P5 interaction / GAM check (optional), written before any result
+
+Does the logistic model miss structure? Two extensions of the final pipeline, each compared with it on the
+same 15 folds by the §3 rule on PR-AUC (the simpler model wins unless the 95% CI of the paired difference
+excludes 0):
+
+1. **GAM-like:** every numeric input expanded with cubic B-splines (5 quantile knots; after `log1p` for the
+   two heavy-tailed columns), L2, `C = 1`.
+2. **Red-flag interactions:** the 15 pairwise products of the 6 boolean flags added to the final inputs.
+
+The final model is not changed by the outcome (the holdout has been used). A better extension is reported
+as a lead for future work; a non-better one goes under "what didn't work".
