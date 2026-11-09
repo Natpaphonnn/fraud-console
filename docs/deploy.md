@@ -1,64 +1,57 @@
-# Deploying the project page to Vercel
+# Publishing the project page
 
-The page is a static site: `web/site/` (one `index.html`, CSS, two small JS modules, an icon and
-`vercel.json`). There is no backend, no build step on Vercel, and no third-party scripts or fonts.
-`web/site/` is **generated**. Edit `web/src/` (or the templates/reports it reads) and run `make docs`.
+The page is a static site: `web/site/` (one `index.html`, CSS, small JS modules, an icon). There is no
+backend and no build step on the host, and no third-party scripts or fonts. `web/site/` is
+**generated** and committed. Edit `web/src/` (or the templates/reports it reads) and run `make docs`.
 
-> Deployment is done by Nat. Nothing in this repository deploys or pushes automatically.
+- Live URL: <https://natpaphonnn.github.io/fraud-console/> (GitHub Pages)
+- Repository: <https://github.com/Natpaphonnn/fraud-console>
 
-## 1. Before every deploy (local)
+## 1. Before every publish (local)
 
 ```bash
-make check         # lint + tests; fails if web/site/ is stale or the simulator disagrees with reports/
-make web-serve     # optional: open http://localhost:8000 and click around (Ctrl+C to stop)
-make web-preview   # optional: re-take reports/web_preview/*.png and re-run the browser smoke test
+make check         # lint + tests; fails if web/site/ is stale, paths are not relative, or JS ≠ Python
+make web-preview   # browser smoke test served under /fraud-console/ (no 404s, no console errors) + screenshots
 git status         # commit web/site/ together with any change to web/src/, reports/ or configs/links.yaml
 ```
 
-## 2. Option A — Vercel dashboard + GitHub (recommended)
+`make web-serve` previews at <http://localhost:8000> (site root); `make web-preview` is the one that
+reproduces the GitHub Pages sub-path.
 
-1. The repository is on GitHub: <https://github.com/Natpaphonnn/fraud-console>.
-2. On <https://vercel.com/new>, choose **Import Git Repository** and pick `Natpaphonnn/fraud-console`
-   (first time: allow the Vercel GitHub app to see this repository).
-3. Configure the project:
-   - **Root Directory:** `web/site` (click *Edit* next to Root Directory)
-   - **Framework Preset:** `Other`
-   - **Build Command / Output Directory / Install Command:** leave empty (no overrides)
-4. Click **Deploy**. Vercel serves the files as they are; `vercel.json` adds security headers
-   (Content-Security-Policy, nosniff, referrer and permissions policies) and clean URLs.
+## 2. GitHub Pages (current)
 
-After this, every push to the default branch redeploys automatically, and other branches get
-preview URLs. The site only changes when `web/site/` changes, so always commit it after `make docs`.
+`.github/workflows/pages.yml` uploads `web/site/` as-is with `actions/upload-pages-artifact` and publishes
+it with `actions/deploy-pages`. It runs on every push to `main` and can be started by hand.
 
-## 3. Option B — Vercel CLI (no GitHub needed)
+**One-time setup (repository owner):**
 
-```bash
-cd web/site
-npx vercel@latest login      # opens the browser; credentials stay in ~/.vercel, never in the repo
-npx vercel@latest            # first run: answer the prompts (scope, new project name); gives a preview URL
-npx vercel@latest --prod     # promote to the production URL
-```
+1. Open <https://github.com/Natpaphonnn/fraud-console/settings/pages>.
+2. Under **Build and deployment → Source**, choose **GitHub Actions** (not "Deploy from a branch").
+3. Open the **Actions** tab → **Deploy project page to GitHub Pages** → **Run workflow** (branch `main`).
+   A run triggered before step 2 fails with a Pages "not found / not enabled" error; just run it again.
+4. When the run is green, the URL is shown on the run page and in **Settings → Pages**.
 
-The CLI writes `web/site/.vercel/` (project IDs). It is git-ignored and ignored by the
-freshness check. Do not commit it.
+**Afterwards:** every push to `main` redeploys. To roll back, revert the commit and push, or open an
+earlier successful run of the workflow and choose **Re-run all jobs**. That deploys that commit's
+`web/site/`.
 
-## 4. After the first deploy
+**Differences from a header-capable host:** GitHub Pages cannot set response headers, so the
+Content-Security-Policy is shipped as a `<meta>` tag generated from `web/src/vercel.json`.
+`frame-ancestors` cannot be set that way, so the page can be framed. `vercel.json` is published as an
+inert file and ignored by Pages.
 
-1. Put the production URL in `configs/links.yaml` → `website: "https://<project>.vercel.app"`,
-   plus the GitHub / Kaggle / Medium URLs when they exist (empty values are simply not shown).
-2. Run `make docs`. This updates the README links and adds the canonical URL to the page.
-3. Run `make check`, commit, and redeploy (push for Option A, `npx vercel@latest --prod` for Option B).
+**Quick checks on the live site:** loads on a phone without horizontal scrolling. The stream plays,
+or waits for Play with reduced motion on. The cost label and the dataset credit (Udit Jain, CC0) are
+visible, and the browser console has no errors.
 
-## 5. Quick checks on the live site
+## 3. Alternative: Vercel
 
-- The page loads on a phone without horizontal scrolling. The simulator starts at the project
-  threshold and changes when you move the slider or edit a cost.
-- The cost label *"Illustrative assumed costs (not bank data)"* and the dataset credit
-  (*Credit Card Fraud Detection 2026*, Udit Jain, CC0) are visible.
-- The browser console has no errors (a CSP violation would show up there).
-- `curl -sI https://<project>.vercel.app | grep -i content-security-policy` prints the policy.
+Only if a header-capable host is wanted later (real CSP header incl. `frame-ancestors`):
 
-## Rolling back
+1. <https://vercel.com/new> → **Import Git Repository** → `Natpaphonnn/fraud-console`.
+2. **Root Directory:** `web/site` · **Framework Preset:** Other · leave Build/Output/Install empty.
+3. **Deploy**. `web/site/vercel.json` adds the security headers and clean URLs.
+4. Put the new URL in `configs/links.yaml` (`website`), run `make docs`, `make check`, commit and push.
 
-In the Vercel dashboard, open **Deployments**, pick an earlier deployment, then choose **⋯ → Promote to
-Production**.
+The Vercel CLI (`cd web/site && npx vercel@latest`, then `--prod`) also works. It writes
+`web/site/.vercel/`, which is git-ignored and ignored by the freshness check.

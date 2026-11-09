@@ -3,4 +3,4 @@
 github: "https://github.com/Natpaphonnn/fraud-console"
 kaggle: ""   # Kaggle notebook (or profile/collection) URL
 medium: ""   # Medium article URL
-website: ""  # deployed Vercel URL, e.g. https://fraud-e2e.vercel.app
+website: "https://natpaphonnn.github.io/fraud-console/"  # GitHub Pages (.github/workflows/pages.yml)

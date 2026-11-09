@@ -1,8 +1,9 @@
 """Screenshot the built website and smoke-test it in a real browser.
 
-Serves web/site/ on localhost and drives the installed Google Chrome with Playwright.
-Fails on any console error, horizontal overflow, or a feature that does not react:
-live stream (autoplay, reduced-motion pause, step, inspector), shared threshold,
+Serves web/site/ on localhost under /fraud-console/ (as on GitHub Pages) and drives
+the installed Google Chrome with Playwright. Fails on any console error, any HTTP
+error (e.g. a 404 from a root-absolute path), horizontal overflow, or a feature that
+does not react: live stream (autoplay, reduced-motion pause, step, inspector), shared threshold,
 cost simulator, try-it-yourself, command palette, light/dark theme.
 
     uv run --with playwright python scripts/web_preview.py      # (make web-preview)
@@ -16,6 +17,7 @@ import functools
 import http.server
 import socketserver
 import sys
+import tempfile
 import threading
 from pathlib import Path
 
@@ -30,15 +32,21 @@ DESKTOP = {"width": 1440, "height": 900}
 MOBILE = {"width": 390, "height": 844}
 
 
-def serve() -> tuple[socketserver.TCPServer, str]:
+SUBPATH = "fraud-console"  # GitHub Pages serves the site at https://<user>.github.io/fraud-console/
+
+
+def serve(root: Path) -> tuple[socketserver.TCPServer, str]:
+    """Serve web/site/ under /fraud-console/ (like GitHub Pages); anything else 404s."""
+    (root / SUBPATH).symlink_to(SITE, target_is_directory=True)
+
     class Quiet(http.server.SimpleHTTPRequestHandler):
         def log_message(self, *args):
             pass
 
-    handler = functools.partial(Quiet, directory=str(SITE))
+    handler = functools.partial(Quiet, directory=str(root))
     httpd = socketserver.TCPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    return httpd, f"http://127.0.0.1:{httpd.server_address[1]}/"
+    return httpd, f"http://127.0.0.1:{httpd.server_address[1]}/{SUBPATH}/"
 
 
 class Checks:
@@ -56,6 +64,8 @@ def open_page(browser, url, check, name, **ctx) -> tuple[Page, list[str]]:
     errors: list[str] = []
     page.on("console", lambda m: m.type == "error" and errors.append(m.text))
     page.on("pageerror", lambda exc: errors.append(str(exc)))
+    page.on("response", lambda r: r.status >= 400 and errors.append(f"HTTP {r.status} {r.url}"))
+    page.on("requestfailed", lambda r: errors.append(f"request failed {r.url}"))
     page.goto(url, wait_until="networkidle")
     page.wait_for_selector("#cost-chart svg")
     overflow = page.evaluate(
@@ -81,7 +91,9 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     ctx = build_context()
     check = Checks()
-    httpd, url = serve()
+    tmp = tempfile.TemporaryDirectory()
+    httpd, url = serve(Path(tmp.name))
+    print("serving under", url)
     try:
         with sync_playwright() as pw:
             browser = pw.chromium.launch(channel="chrome", headless=True)
@@ -219,6 +231,7 @@ def main() -> int:
             browser.close()
     finally:
         httpd.shutdown()
+        tmp.cleanup()
     for p in sorted(OUT.glob("*.png")):
         print("wrote", p.relative_to(REPO))
     if check.failures:

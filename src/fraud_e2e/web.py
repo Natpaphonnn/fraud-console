@@ -213,6 +213,27 @@ def stream_data() -> dict:
     }
 
 
+def csp_meta() -> str:
+    """The CSP from vercel.json as a <meta> tag (GitHub Pages cannot set response headers).
+
+    `frame-ancestors` is dropped: browsers ignore it in a meta tag.
+    """
+    cfg = json.loads((SRC / "vercel.json").read_text())
+    policy = next(
+        h["value"]
+        for rule in cfg["headers"]
+        for h in rule["headers"]
+        if h["key"] == "Content-Security-Policy"
+    )
+    kept = [
+        d.strip()
+        for d in policy.split(";")
+        if d.strip() and not d.strip().startswith("frame-ancestors")
+    ]
+    value = html.escape("; ".join(kept), quote=False).replace('"', "&quot;")
+    return f'<meta http-equiv="Content-Security-Policy" content="{value}">'
+
+
 def page_data() -> dict:
     return {"sim": sim_data(), "model": model_data(), "stream": stream_data()}
 
@@ -231,6 +252,7 @@ def build_site() -> dict[str, bytes]:
     ctx |= {
         "links_html": links_html(links),
         "canonical_html": canonical_html(links),
+        "csp_meta": csp_meta(),
         "shap_html": shap_html(),
         "forest_html": forest_html(forest_rows()),
         "data_json": _data_json(page_data()),

@@ -37,9 +37,12 @@ def test_required_labels_and_credit(page):
 
 def test_self_contained_no_third_party_assets(page):
     # scripts, stylesheets and icons are local files; no CDN, fonts or trackers
+    # (rel="canonical" only names the page's own public URL; it loads nothing)
     for tag, attr in (("script", "src"), ("link", "href")):
-        for url in re.findall(rf"<{tag}\b[^>]*\b{attr}=\"([^\"]+)\"", page):
-            assert not re.match(r"[a-z]+:|//", url), url
+        for m in re.finditer(rf"<{tag}\b[^>]*\b{attr}=\"([^\"]+)\"[^>]*>", page):
+            if 'rel="canonical"' in m.group(0):
+                continue
+            assert not re.match(r"[a-z]+:|//", m.group(1)), m.group(1)
     allowed = {DATASET_URL, "https://creativecommons.org/publicdomain/zero/1.0/"}
     allowed |= {u for u in load_links().values() if u}
     for url in re.findall(r"href=\"(https?://[^\"]+)\"", page):
@@ -76,3 +79,20 @@ def test_links_must_be_https(tmp_path):
 def test_vercel_config_is_valid_json():
     cfg = json.loads((SITE / "vercel.json").read_text())
     assert any(h["key"] == "Content-Security-Policy" for h in cfg["headers"][0]["headers"])
+
+
+def test_local_paths_are_relative(page):
+    # the site is served under a sub-path (GitHub Pages: /fraud-console/), so no root-absolute URLs
+    refs = re.findall(r'(?:href|src)="([^"]+)"', page)
+    for url in refs:
+        assert not url.startswith("/"), url
+    for name in ("app.js", "model.js", "sim.js"):
+        js = build_site()[name].decode()
+        for spec in re.findall(r'from\s+"([^"]+)"', js):
+            assert spec.startswith("./"), (name, spec)
+        assert "fetch(" not in js
+
+
+def test_csp_meta_matches_vercel_policy(page):
+    meta = re.search(r'<meta http-equiv="Content-Security-Policy" content="([^"]+)">', page)
+    assert meta and "script-src 'self'" in meta.group(1) and "frame-ancestors" not in meta.group(1)

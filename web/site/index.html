@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Fraud Console · Fraud-E2E</title>
 <meta name="description" content="A fraud-scoring console in the browser: a logistic model exported from the Python pipeline scores transactions live, with a cost-based step-up threshold, per-feature contributions and an uncertainty interval on every number.">
 <meta name="author" content="Natpaphon Nukhunthod">
@@ -11,7 +12,8 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Fraud Console · cost-aware credit card fraud detection">
 <meta property="og:description" content="Live in-browser scoring, a threshold simulator with illustrative costs, and a pre-registered evaluation on a public CC0 dataset.">
-<!-- canonical URL: set `website` in configs/links.yaml -->
+<link rel="canonical" href="https://natpaphonnn.github.io/fraud-console/">
+<meta property="og:url" content="https://natpaphonnn.github.io/fraud-console/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
