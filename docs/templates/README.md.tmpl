@@ -1,10 +1,12 @@
 # Fraud-E2E: cost-aware credit card fraud detection
 
+[![CI]({{url_github}}/actions/workflows/ci.yml/badge.svg)]({{url_github}}/actions/workflows/ci.yml)
+
 An end-to-end data-science case study on a small, highly imbalanced fraud dataset: data checks, EDA, pre-registered model comparison, expected-cost thresholds, a one-time holdout check and explanations — with an uncertainty interval on every number.
 
 **Links:** Project page (with threshold simulator): {{link_website_md}} · Kaggle notebooks: {{link_kaggle_md}} · Medium article: {{link_medium_md}}
 
-> **Status:** data-science work complete (notebooks 00–06, model card) and a static "fraud console" project page (`web/site/`): the logistic model runs in the browser on a live stream of dev transactions, with per-feature contributions, a build-your-own transaction form and a cost/threshold simulator. Engineering (API, Docker, MLflow, CI) and monitoring are deferred.
+> **Status:** data-science work complete (notebooks 00–06, model card) and a static "fraud console" project page (`web/site/`): the logistic model runs in the browser on a live stream of dev transactions, with per-feature contributions, a build-your-own transaction form and a cost/threshold simulator. A small scoring API (FastAPI, Docker, CI) serves the same model; MLflow and drift monitoring are deferred.
 
 ![Fraud console: transactions scored live in the browser, with outcomes and a per-feature inspector](reports/web_preview/desktop_hero.png)
 
@@ -82,6 +84,26 @@ make kaggle          # rebuild Kaggle editions
 
 The whole pipeline runs on a laptop in a few minutes (seed 42, deterministic).
 
+## Scoring API
+
+`api/` serves the same exported model as the website (`reports/p4_web_model.json`) with pure-Python scoring: `POST /predict` returns the fraud score, the decision at the project threshold (`approve` / `step-up`) and the three largest per-feature contributions (coefficient × model input, log-odds); `GET /health` reports the model id. Requests are validated with pydantic (types, ranges, known categories, no extra fields). Tests check that the API's score equals the Python pipeline's for all 2,000 transactions on the website (≤ 1e-9). The threshold comes from **illustrative assumed costs (not bank data)**.
+
+```bash
+# with uv (from the repo; model files are read from reports/)
+uv sync
+uv run uvicorn api.app:app --port 8000
+
+# or with Docker (python:3.12-slim, non-root; built and smoke-tested in CI)
+docker build -t fraud-console-api .
+docker run --rm -p 8000:8000 fraud-console-api
+
+# then, in another terminal (example_request.json is a real dev transaction)
+curl -s localhost:8000/health
+curl -s -X POST localhost:8000/predict -H 'Content-Type: application/json' -d @api/example_request.json
+```
+
+Interactive docs: <http://localhost:8000/docs>. CI (`.github/workflows/ci.yml`) runs lint, pytest, the Node tests, builds the image and calls `/predict` inside the container.
+
 ## Repository layout
 
 ```
@@ -91,6 +113,8 @@ kaggle/          Kaggle editions of the notebooks
 reports/         JSON/CSV results, CV fold metrics, figures
 docs/            model card, deploy guide (+ templates for generated docs)
 web/             static project page: templates/ (source) → site/ (generated, deployable)
+api/             FastAPI scoring service (+ Dockerfile, .dockerignore at the repo root)
+.github/         CI (lint, tests, Docker smoke test), Pages deploy, content renders
 notes/           pre-registration, cost assumptions, experiment log, holdout lock
 configs/         cost assumptions, public links
 tests/           pytest suite

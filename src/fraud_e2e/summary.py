@@ -249,6 +249,7 @@ def build_context() -> dict[str, str]:
 
     for key, url in load_links().items():
         c[f"link_{key}_md"] = f"[{LINK_LABELS[key]}]({url})" if url else "_coming soon_"
+        c[f"url_{key}"] = url
     return c
 
 

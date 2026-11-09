@@ -1,0 +1,52 @@
+# Lint + tests (Python and Node) + Docker image build and a live /predict check inside the container.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Install (locked)
+        run: uv sync --locked
+      - name: Lint, pytest, Node tests, generated-file freshness
+        run: make check
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build image
+        run: docker build -t fraud-console-api:ci .
+      - name: Image size
+        run: docker image ls fraud-console-api:ci --format 'size {{.Size}}'
+      - name: Start container
+        run: docker run -d --name api -p 8000:8000 fraud-console-api:ci
+      - name: Call /health and /predict, compare with Python
+        run: python3 scripts/ci_api_smoke.py http://127.0.0.1:8000
+      - name: Runs as a non-root user
+        run: test "$(docker exec api id -u)" != "0"
+      - name: Container logs
+        if: always()
+        run: docker logs api || true

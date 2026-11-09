@@ -1,0 +1,4 @@
+# Runtime dependencies of the API image only (the scoring itself is pure Python).
+fastapi==0.162.2
+pydantic==2.14.3
+uvicorn==0.54.0

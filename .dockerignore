@@ -1,0 +1,7 @@
+# Whitelist: the image needs only the API code and two model files.
+*
+!api/
+!reports/p4_web_model.json
+!reports/p2_threshold.json
+api/__pycache__/
+api/**/*.pyc
