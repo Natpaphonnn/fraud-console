@@ -99,3 +99,22 @@ def test_annotation_timing_holds_each_caption_and_loops_seamlessly():
     assert ((alphas > 0).sum(axis=1) <= 1).all()  # one caption at a time
     # the last frame flows into the first: caption 1 is fading in at the end of the loop
     assert 0 < alphas[-1, 0] < 1 and alphas[-1, 1:].sum() == 0
+
+
+@pytest.mark.parametrize("size", [(1080, 1080), (1080, 1920)])
+def test_annotated_captions_fit_the_safe_area_without_lone_words(dev, size):
+    import matplotlib.pyplot as plt
+
+    w, h = size
+    left, right, _, _ = cf.safe_box(w, h)
+    cf.register_mono()
+    fig = plt.figure(figsize=(w / 100, h / 100), dpi=100)
+    land = cf.landscape_data(dev, n=10)
+    land["_contour"] = cf.threshold_contour(land)
+    data = {"landscape": land, "cost_valley": cf.cost_data(), "galaxy": cf.galaxy_data(dev)}
+    for name, d in data.items():
+        for cap in cf.annotations(name, d):
+            lines = cf.wrap(fig, cap["text"], cf.CAPTION_PT, (right - left) * w)
+            assert len(lines) <= 3, lines
+            assert len(lines) == 1 or len(lines[-1].split()) > 1, lines  # no lone last word
+    plt.close(fig)

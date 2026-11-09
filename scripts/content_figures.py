@@ -442,21 +442,31 @@ def annotations(name: str, d: dict) -> list[dict]:
 
 
 def wrap(fig, phrase: str, size: float, width_px: float, weight=600, max_words=8) -> list[str]:
-    """Break at " · " and newlines, then greedy word-wrap so every line fits (measured)."""
+    """Break at " · " and newlines, then word-wrap so every line fits (measured); a phrase that
+    needs two lines is split evenly (no lone last word)."""
     renderer = fig.canvas.get_renderer()
     probe = fig.text(0, 0, "", fontsize=size, family=MONO, weight=weight)
+
+    def width(text: str) -> float:
+        probe.set_text(text)
+        return probe.get_window_extent(renderer).width
+
     lines: list[str] = []
     for part in phrase.replace(" · ", "\n").split("\n"):
-        line = ""
-        for word in part.split():
+        words = part.split()
+        greedy, line = [], ""
+        for word in words:
             trial = f"{line} {word}".strip()
-            probe.set_text(trial)
-            if line and probe.get_window_extent(renderer).width > width_px:
-                lines.append(line)
+            if line and width(trial) > width_px:
+                greedy.append(line)
                 line = word
             else:
                 line = trial
-        lines.append(line)
+        greedy.append(line)
+        if len(greedy) == 2:  # balanced: the cut with the narrowest wider line
+            cuts = [(" ".join(words[:i]), " ".join(words[i:])) for i in range(1, len(words))]
+            greedy = list(min(cuts, key=lambda c: max(width(c[0]), width(c[1]))))
+        lines.extend(greedy)
     probe.set_text("")
     for line in lines:
         probe.set_text(line)
