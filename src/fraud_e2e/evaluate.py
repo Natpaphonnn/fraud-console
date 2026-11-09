@@ -74,16 +74,20 @@ def _metrics(y, s, amount, t_flag, p: CostParams, three_tier=None) -> dict:
     return out
 
 
-def bootstrap_metrics(y, s, amount, t_flag, p, three_tier=None, n_boot=2000, seed=C.SEED):
-    """Stratified bootstrap (fraud and legit resampled separately) percentile 95% CIs."""
+def bootstrap(fn, y, s, amount, n_boot=2000, seed=C.SEED) -> dict:
+    """Stratified bootstrap (fraud and legit resampled separately) percentile 95% CIs.
+
+    `fn(y, s, amount) -> dict of scalars` is evaluated on the original sample and on each
+    resample.
+    """
     rng = np.random.default_rng(seed)
     y, s, amount = np.asarray(y), np.asarray(s, float), np.asarray(amount, float)
     pos, neg = np.flatnonzero(y == 1), np.flatnonzero(y == 0)
-    point = _metrics(y, s, amount, t_flag, p, three_tier)
+    point = fn(y, s, amount)
     reps = []
     for _ in range(n_boot):
         idx = np.r_[rng.choice(pos, len(pos)), rng.choice(neg, len(neg))]
-        reps.append(_metrics(y[idx], s[idx], amount[idx], t_flag, p, three_tier))
+        reps.append(fn(y[idx], s[idx], amount[idx]))
     reps = pd.DataFrame(reps)
     return {
         k: {
@@ -93,6 +97,13 @@ def bootstrap_metrics(y, s, amount, t_flag, p, three_tier=None, n_boot=2000, see
         }
         for k, v in point.items()
     }
+
+
+def bootstrap_metrics(y, s, amount, t_flag, p, three_tier=None, n_boot=2000, seed=C.SEED):
+    """Pre-registered holdout metrics with stratified bootstrap CIs."""
+    return bootstrap(
+        lambda yy, ss_, aa: _metrics(yy, ss_, aa, t_flag, p, three_tier), y, s, amount, n_boot, seed
+    )
 
 
 def evaluate_holdout(

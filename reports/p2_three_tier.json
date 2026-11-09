@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "params": {
+    "stepup_fraud_pass_rate": 0.2,
+    "decline_fp_cost": 50.0,
+    "decline_tp_cost": 0.0,
+    "status": "accepted"
+  },
+  "t_stepup": 0.11659144011798311,
+  "t_decline": 0.42986623470822766,
+  "cost_per_1000_txn": 1989.4242083333336,
+  "two_tier_same_model_threshold": 0.11659144011798311,
+  "two_tier_same_model_cost_per_1000": 2093.1577500000003,
+  "cost_sd_across_repeats_per_1000": 26.74395637929626,
+  "best_pair_per_repeat": [
+    [
+      0.08254041852680181,
+      0.435
+    ],
+    [
+      0.06944910713781215,
+      0.44
+    ],
+    [
+      0.07356422544596414,
+      0.555
+    ]
+  ],
+  "n_rows": 16000,
+  "cost_label": "Illustrative assumed costs (not bank data)"
+}

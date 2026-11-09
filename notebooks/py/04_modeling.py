@@ -82,7 +82,6 @@ def summary_table(results):
                 ci["ci_high"],
                 ci["sd"],
             )
-        row["fit_seconds_15_folds"] = round(r.seconds, 1)
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -213,7 +212,6 @@ for i, params in enumerate(configs):
             **params,
             "pr_auc_r0_mean": r.folds["pr_auc"].mean(),
             "pr_auc_r0_sd": r.folds["pr_auc"].std(ddof=1),
-            "seconds": r.seconds,
         }
     )
 trials = pd.DataFrame(trials).sort_values("pr_auc_r0_mean", ascending=False).reset_index(drop=True)

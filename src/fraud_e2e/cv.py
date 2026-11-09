@@ -174,6 +174,8 @@ def metric_ci(res: CVResult, metric: str = "pr_auc", alpha: float = 0.05) -> dic
 
 
 CV_DIR = C.REPORTS_DIR / "cv"
+# fixed gzip header timestamp so re-runs produce byte-identical files
+GZIP = {"method": "gzip", "mtime": 0}
 
 
 def save_result(res: CVResult, folder=CV_DIR, with_oof: bool = True) -> None:
@@ -184,12 +186,16 @@ def save_result(res: CVResult, folder=CV_DIR, with_oof: bool = True) -> None:
         "name": res.name,
         "spec": res.spec,
         "spec_id": spec_id(res.spec),
-        "seconds": round(res.seconds, 1),
         **res.extra,
     }
     (folder / f"{res.name}.spec.json").write_text(json.dumps(meta, indent=2, default=str) + "\n")
     if with_oof:
-        res.oof.to_csv(folder / f"{res.name}.oof.csv.gz", index=False, float_format="%.6g")
+        res.oof.to_csv(
+            folder / f"{res.name}.oof.csv.gz",
+            index=False,
+            float_format="%.6g",
+            compression=GZIP,
+        )
 
 
 def load_result(name: str, folder=CV_DIR) -> CVResult:
@@ -197,7 +203,7 @@ def load_result(name: str, folder=CV_DIR) -> CVResult:
     folds = pd.read_csv(folder / f"{name}.folds.csv")
     oof_path = folder / f"{name}.oof.csv.gz"
     oof = pd.read_csv(oof_path) if oof_path.exists() else pd.DataFrame()
-    return CVResult(name=name, spec=meta["spec"], folds=folds, oof=oof, seconds=meta["seconds"])
+    return CVResult(name=name, spec=meta["spec"], folds=folds, oof=oof)
 
 
 def verdict_text(test: dict) -> str:

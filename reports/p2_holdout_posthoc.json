@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "note": "post-hoc descriptive metrics on frozen holdout scores",
+  "two_tier_saving_vs_nothing": {
+    "value": 0.36984486266531036,
+    "ci_low": 0.13163841309964366,
+    "ci_high": 0.634311343241118
+  },
+  "three_tier_model__three_tier_saving_vs_nothing": {
+    "value": 0.26231078331637847,
+    "ci_low": 0.08776376614491395,
+    "ci_high": 0.48057734207176506
+  },
+  "three_tier_model__two_tier_saving_vs_nothing": {
+    "value": 0.25693285859613435,
+    "ci_low": 0.09007080374292158,
+    "ci_high": 0.47044146749028426
+  },
+  "three_tier_model__three_minus_two_per_1000": {
+    "value": -21.146000000000186,
+    "ci_low": -103.05714999999981,
+    "ci_high": 59.99730000000083
+  }
+}

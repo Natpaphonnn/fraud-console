@@ -1,0 +1,93 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "frozen": {
+    "spec_id": "9d9523a408a3",
+    "spec": {
+      "params": {},
+      "imbalance": "none",
+      "drop": [],
+      "calibration": null,
+      "model": "logreg"
+    },
+    "t_flag": 0.0695024318,
+    "cost_params": {
+      "review_cost_per_alert": 5.0,
+      "fp_friction_cost": 10.0,
+      "fn_loss_fraction": 1.0,
+      "fn_fixed_cost": 15.0,
+      "status": "accepted"
+    },
+    "three_tier": {
+      "params": {
+        "stepup_fraud_pass_rate": 0.2,
+        "decline_fp_cost": 50.0,
+        "decline_tp_cost": 0.0,
+        "status": "accepted"
+      },
+      "t_stepup": 0.1165914401,
+      "t_decline": 0.4298662347
+    }
+  },
+  "n_rows": 4000,
+  "n_fraud": 68,
+  "metrics": {
+    "pr_auc": {
+      "value": 0.46845909296506294,
+      "ci_low": 0.3611298395619777,
+      "ci_high": 0.5848473178562291
+    },
+    "roc_auc": {
+      "value": 0.9501114535336006,
+      "ci_low": 0.9226326409251392,
+      "ci_high": 0.9715543840883251
+    },
+    "base_rate": {
+      "value": 0.017,
+      "ci_low": 0.017,
+      "ci_high": 0.017
+    },
+    "recall": {
+      "value": 0.7058823529411765,
+      "ci_low": 0.6029411764705882,
+      "ci_high": 0.8088235294117647
+    },
+    "precision": {
+      "value": 0.2376237623762376,
+      "ci_low": 0.2,
+      "ci_high": 0.27807486631016043
+    },
+    "alert_rate": {
+      "value": 0.0505,
+      "ci_low": 0.0445,
+      "ci_high": 0.05675
+    },
+    "cost_per_1000_txn": {
+      "value": 2477.77,
+      "ci_low": 1113.2395,
+      "ci_high": 4560.6320000000005
+    },
+    "flag_nothing_cost_per_1000_txn": {
+      "value": 3932.0000000000005,
+      "ci_low": 2164.4649375,
+      "ci_high": 6206.718062499999
+    },
+    "three_tier_cost_per_1000_txn": {
+      "value": 2900.594,
+      "ci_low": 1468.3823499999999,
+      "ci_high": 4975.561524999997
+    },
+    "three_tier_decline_rate": {
+      "value": 0.007,
+      "ci_low": 0.00475,
+      "ci_high": 0.0095
+    },
+    "three_tier_stepup_rate": {
+      "value": 0.02675,
+      "ci_low": 0.022,
+      "ci_high": 0.0315
+    }
+  }
+}

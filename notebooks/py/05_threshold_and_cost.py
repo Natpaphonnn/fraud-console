@@ -36,16 +36,20 @@ import numpy as np
 import pandas as pd
 from IPython.display import Markdown, display
 
+from fraud_e2e import config as C
 from fraud_e2e import plots as P
 from fraud_e2e.cost import (
     COST_LABEL,
     load_cost_params,
     load_sensitivity_factors,
     load_three_tier_params,
+    outcome_costs,
+    three_tier_actions,
+    three_tier_costs,
 )
 from fraud_e2e.cv import load_result, metric_ci
 from fraud_e2e.data import load_raw
-from fraud_e2e.evaluate import evaluate_holdout
+from fraud_e2e.evaluate import bootstrap, evaluate_holdout
 from fraud_e2e.reporting import read_json, write_csv, write_json
 from fraud_e2e.splits import attach_splits
 from fraud_e2e.threshold import (
@@ -74,6 +78,7 @@ pd.Series(cost.numeric(), name="assumed value").to_frame()
 best = choose_threshold(oof, cost)
 grid, curves = best.pop("_grid"), best.pop("_curves")
 n = best["n_rows"]
+write_json({**best, "cost_params": cost.to_dict(), "cost_label": COST_LABEL}, "p2_threshold")
 
 fig, ax = P.plt.subplots(figsize=(7, 4))
 per1000 = curves / n * 1000
@@ -333,6 +338,12 @@ if tt is not None:
         ]
     )
     write_csv(comp, "p2_holdout_vs_cv")
+    scores.merge(df_all[[C.ID_COL, C.AMOUNT_COL]], on=C.ID_COL).to_csv(
+        C.REPORTS_DIR / "p2_holdout_scores.csv.gz",
+        index=False,
+        float_format="%.6g",
+        compression={"method": "gzip", "mtime": 0},
+    )
     display(comp)
 else:
     hold = None
@@ -342,6 +353,56 @@ else:
             "the three-tier pair) are fixed on CV."
         )
     )
+
+# %% [markdown]
+# ### Post-hoc, descriptive: relative saving and a like-for-like policy comparison
+#
+# *Added after the holdout was scored.* Absolute cost per 1,000 transactions depends heavily on
+# how large the few fraud amounts in a sample happen to be (the holdout's "step-up nobody" cost
+# differs from dev's), so the relative saving is more comparable across samples. The two-tier and
+# three-tier rows above also use different cost models. The figures below reuse the **same frozen
+# holdout scores** (no refit, thresholds unchanged, nothing selected) and the same bootstrap.
+
+# %%
+if hold is not None:
+    sc = pd.read_csv(C.REPORTS_DIR / "p2_holdout_scores.csv.gz")
+    t2_same = tt["two_tier_same_model_threshold"]
+
+    def posthoc(y, s_, a):
+        none = outcome_costs(y, np.zeros_like(y, bool), a, cost).sum()
+        two = outcome_costs(y, s_ >= best["threshold"], a, cost).sum()
+        t3 = three_tier_costs(
+            y, three_tier_actions(s_, tt["t_stepup"], tt["t_decline"]), a, cost, three
+        ).sum()
+        t2 = three_tier_costs(y, three_tier_actions(s_, t2_same, np.inf), a, cost, three).sum()
+        k = 1000 / len(y)
+        return {
+            "two_tier_saving_vs_nothing": 1 - two / none,
+            "three_tier_model__three_tier_saving_vs_nothing": 1 - t3 / none,
+            "three_tier_model__two_tier_saving_vs_nothing": 1 - t2 / none,
+            "three_tier_model__three_minus_two_per_1000": (t3 - t2) * k,
+        }
+
+    ph = bootstrap(posthoc, sc["y"], sc["score"], sc[C.AMOUNT_COL])
+    write_json(
+        {"note": "post-hoc descriptive metrics on frozen holdout scores", **ph},
+        "p2_holdout_posthoc",
+    )
+    cv_two_save = best["saving_vs_flag_nothing"]
+    display(
+        Markdown(f"""
+| Post-hoc metric (holdout) | value [95% CI] | dev OOF |
+|---|---|---|
+| Two-tier saving vs step-up nobody | {100 * ph["two_tier_saving_vs_nothing"]["value"]:.1f}% [{100 * ph["two_tier_saving_vs_nothing"]["ci_low"]:.1f}, {100 * ph["two_tier_saving_vs_nothing"]["ci_high"]:.1f}] | {100 * cv_two_save:.1f}% |
+| Three-tier cost model: three-tier saving | {100 * ph["three_tier_model__three_tier_saving_vs_nothing"]["value"]:.1f}% [{100 * ph["three_tier_model__three_tier_saving_vs_nothing"]["ci_low"]:.1f}, {100 * ph["three_tier_model__three_tier_saving_vs_nothing"]["ci_high"]:.1f}] | |
+| Three-tier cost model: two-tier saving | {100 * ph["three_tier_model__two_tier_saving_vs_nothing"]["value"]:.1f}% [{100 * ph["three_tier_model__two_tier_saving_vs_nothing"]["ci_low"]:.1f}, {100 * ph["three_tier_model__two_tier_saving_vs_nothing"]["ci_high"]:.1f}] | |
+| Three-tier minus two-tier (USD per 1,000) | {ph["three_tier_model__three_minus_two_per_1000"]["value"]:+,.0f} [{ph["three_tier_model__three_minus_two_per_1000"]["ci_low"]:+,.0f}, {ph["three_tier_model__three_minus_two_per_1000"]["ci_high"]:+,.0f}] | {tt["cost_per_1000_txn"] - tt["two_tier_same_model_cost_per_1000"]:+,.0f} |
+
+_{COST_LABEL}._
+""")
+    )
+else:
+    ph = None
 
 # %% [markdown]
 # ## Summary
@@ -377,6 +438,16 @@ if hold is not None:
         f"({100 * m['recall']['ci_low']:.1f}–{100 * m['recall']['ci_high']:.1f}%); cost "
         f"{m['cost_per_1000_txn']['value']:,.0f} USD per 1,000 "
         f"({m['cost_per_1000_txn']['ci_low']:,.0f}–{m['cost_per_1000_txn']['ci_high']:,.0f})."
+    )
+if ph is not None:
+    d = ph["three_tier_model__three_minus_two_per_1000"]
+    sv = ph["two_tier_saving_vs_nothing"]
+    lines.append(
+        f"- **Post-hoc (same frozen holdout scores):** two-tier saving vs doing nothing "
+        f"{100 * sv['value']:.1f}% ({100 * sv['ci_low']:.1f}–{100 * sv['ci_high']:.1f}%) vs "
+        f"{100 * best['saving_vs_flag_nothing']:.1f}% on dev; three-tier minus two-tier under the "
+        f"three-tier cost model {d['value']:+,.0f} USD per 1,000 ({d['ci_low']:+,.0f} to "
+        f"{d['ci_high']:+,.0f})."
     )
 lines.append(f"- _{COST_LABEL}._")
 display(Markdown("\n".join(lines)))

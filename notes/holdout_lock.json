@@ -1,0 +1,28 @@
+{
+  "spec_id": "9d9523a408a3",
+  "spec": {
+    "params": {},
+    "imbalance": "none",
+    "drop": [],
+    "calibration": null,
+    "model": "logreg"
+  },
+  "t_flag": 0.0695024318,
+  "cost_params": {
+    "review_cost_per_alert": 5.0,
+    "fp_friction_cost": 10.0,
+    "fn_loss_fraction": 1.0,
+    "fn_fixed_cost": 15.0,
+    "status": "accepted"
+  },
+  "three_tier": {
+    "params": {
+      "stepup_fraud_pass_rate": 0.2,
+      "decline_fp_cost": 50.0,
+      "decline_tp_cost": 0.0,
+      "status": "accepted"
+    },
+    "t_stepup": 0.1165914401,
+    "t_decline": 0.4298662347
+  }
+}

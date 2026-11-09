@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "threshold": 0.0695024317588797,
+  "grid_index": 2910,
+  "cost_usd": 26619.20333333334,
+  "cost_per_1000_txn": 1663.7002083333336,
+  "cost_sd_across_repeats": 860.8641236765134,
+  "best_threshold_per_repeat": [
+    0.08336811846196349,
+    0.06729766562843176,
+    0.07379042301291007
+  ],
+  "near_optimal_range": [
+    0.06516283940608428,
+    0.0695024317588797
+  ],
+  "flag_nothing_cost_usd": 50800.700000000004,
+  "saving_vs_flag_nothing": 0.4760071547570538,
+  "n_rows": 16000,
+  "recall": 0.6949569495694957,
+  "precision": 0.23473203157457415,
+  "alert_rate": 0.050145833333333334,
+  "tp": 188.33333333333334,
+  "fp": 614.0,
+  "fn": 82.66666666666667,
+  "cost_params": {
+    "review_cost_per_alert": 5.0,
+    "fp_friction_cost": 10.0,
+    "fn_loss_fraction": 1.0,
+    "fn_fixed_cost": 15.0,
+    "status": "accepted"
+  },
+  "cost_label": "Illustrative assumed costs (not bank data)"
+}

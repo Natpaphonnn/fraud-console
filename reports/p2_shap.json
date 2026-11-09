@@ -1,0 +1,509 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "explained_model": {
+    "params": {},
+    "imbalance": "none",
+    "drop": [],
+    "calibration": null,
+    "model": "logreg"
+  },
+  "base_log_odds": -6.419409115723568,
+  "additivity_max_abs_error": 5.329070518200751e-15,
+  "threshold": 0.0695024317588797,
+  "global_importance": [
+    {
+      "feature": "merchant_risk_score",
+      "mean_abs_shap": 0.8188709204494174
+    },
+    {
+      "feature": "velocity_score",
+      "mean_abs_shap": 0.6453537818976426
+    },
+    {
+      "feature": "cvv_retry_count",
+      "mean_abs_shap": 0.588956409839732
+    },
+    {
+      "feature": "auth_method",
+      "mean_abs_shap": 0.5261416465913055
+    },
+    {
+      "feature": "is_new_merchant",
+      "mean_abs_shap": 0.4937958346625436
+    },
+    {
+      "feature": "ip_country_mismatch",
+      "mean_abs_shap": 0.27133095204265373
+    },
+    {
+      "feature": "merchant_category",
+      "mean_abs_shap": 0.2554923833067881
+    },
+    {
+      "feature": "used_vpn",
+      "mean_abs_shap": 0.24689134669584653
+    },
+    {
+      "feature": "time_of_day_hour",
+      "mean_abs_shap": 0.22955705925838482
+    },
+    {
+      "feature": "billing_shipping_mismatch",
+      "mean_abs_shap": 0.20652224193710292
+    },
+    {
+      "feature": "prior_disputes",
+      "mean_abs_shap": 0.2030305776538933
+    },
+    {
+      "feature": "is_foreign_transaction",
+      "mean_abs_shap": 0.1369234690401392
+    },
+    {
+      "feature": "card_age_months",
+      "mean_abs_shap": 0.12816641202599394
+    },
+    {
+      "feature": "customer_age",
+      "mean_abs_shap": 0.1106032900527635
+    },
+    {
+      "feature": "card_type",
+      "mean_abs_shap": 0.11006262937173714
+    },
+    {
+      "feature": "is_ai_generated_scam_attempt",
+      "mean_abs_shap": 0.08801703929198333
+    },
+    {
+      "feature": "amount_usd",
+      "mean_abs_shap": 0.08704903581895689
+    },
+    {
+      "feature": "day_of_week",
+      "mean_abs_shap": 0.08596282140967898
+    },
+    {
+      "feature": "device_type",
+      "mean_abs_shap": 0.07309183024363543
+    },
+    {
+      "feature": "channel",
+      "mean_abs_shap": 0.0626926490297353
+    },
+    {
+      "feature": "distance_from_home_km",
+      "mean_abs_shap": 0.04680479226094852
+    },
+    {
+      "feature": "hours_since_last_txn",
+      "mean_abs_shap": 0.04454191160327375
+    },
+    {
+      "feature": "account_balance_usd",
+      "mean_abs_shap": 0.02179074628956529
+    },
+    {
+      "feature": "txn_count_last_24h",
+      "mean_abs_shap": 0.002131077874039092
+    }
+  ],
+  "examples": [
+    {
+      "label": "caught fraud",
+      "transaction_id": 15058,
+      "oof_score": 0.97627,
+      "amount_usd": 131.97,
+      "is_fraud": 1,
+      "base_log_odds": -6.419409115723568,
+      "log_odds": 3.32209892679641,
+      "contributions": [
+        {
+          "feature": "cvv_retry_count",
+          "value": "2",
+          "shap": 3.5269905413734586
+        },
+        {
+          "feature": "ip_country_mismatch",
+          "value": "True",
+          "shap": 2.324033850471614
+        },
+        {
+          "feature": "auth_method",
+          "value": "No Authentication",
+          "shap": 1.7187622293116493
+        },
+        {
+          "feature": "is_foreign_transaction",
+          "value": "True",
+          "shap": 1.1177426044093095
+        },
+        {
+          "feature": "is_new_merchant",
+          "value": "True",
+          "shap": 1.0714311573911728
+        },
+        {
+          "feature": "card_type",
+          "value": "Amex",
+          "shap": 0.2870384197697239
+        },
+        {
+          "feature": "merchant_category",
+          "value": "Electronics",
+          "shap": -0.20962197405624455
+        },
+        {
+          "feature": "device_type",
+          "value": "ATM Machine",
+          "shap": 0.17876928590597002
+        },
+        {
+          "feature": "customer_age",
+          "value": "28",
+          "shap": -0.15054917629371564
+        },
+        {
+          "feature": "used_vpn",
+          "value": "False",
+          "shap": -0.13532000366990465
+        },
+        {
+          "feature": "prior_disputes",
+          "value": "0",
+          "shap": -0.1342905846408435
+        },
+        {
+          "feature": "merchant_risk_score",
+          "value": "39.2",
+          "shap": 0.10816426160983111
+        },
+        {
+          "feature": "billing_shipping_mismatch",
+          "value": "False",
+          "shap": -0.10802784984286125
+        },
+        {
+          "feature": "amount_usd",
+          "value": "131.97",
+          "shap": 0.06958861633085564
+        },
+        {
+          "feature": "velocity_score",
+          "value": "20.9",
+          "shap": 0.06796962693448355
+        },
+        {
+          "feature": "time_of_day_hour",
+          "value": "13",
+          "shap": -0.055736309908308385
+        },
+        {
+          "feature": "hours_since_last_txn",
+          "value": "0.81",
+          "shap": 0.05498389536144244
+        },
+        {
+          "feature": "distance_from_home_km",
+          "value": "4.73",
+          "shap": 0.05008143950370008
+        },
+        {
+          "feature": "day_of_week",
+          "value": "2",
+          "shap": -0.04975115572174616
+        },
+        {
+          "feature": "is_ai_generated_scam_attempt",
+          "value": "False",
+          "shap": -0.044843734195367906
+        },
+        {
+          "feature": "account_balance_usd",
+          "value": "5208.01",
+          "shap": 0.026017992009707055
+        },
+        {
+          "feature": "channel",
+          "value": "Online",
+          "shap": 0.025470827845200057
+        },
+        {
+          "feature": "txn_count_last_24h",
+          "value": "1",
+          "shap": 0.0032806970217954708
+        },
+        {
+          "feature": "card_age_months",
+          "value": "47",
+          "shap": -0.000676614400944113
+        }
+      ]
+    },
+    {
+      "label": "missed fraud",
+      "transaction_id": 10915,
+      "oof_score": 0.0319368,
+      "amount_usd": 3236.34,
+      "is_fraud": 1,
+      "base_log_odds": -6.419409115723568,
+      "log_odds": -3.405671376276815,
+      "contributions": [
+        {
+          "feature": "merchant_risk_score",
+          "value": "87.8",
+          "shap": 3.090979520577921
+        },
+        {
+          "feature": "is_new_merchant",
+          "value": "True",
+          "shap": 1.0714311573911728
+        },
+        {
+          "feature": "auth_method",
+          "value": "Biometric",
+          "shap": -0.8640390056420106
+        },
+        {
+          "feature": "velocity_score",
+          "value": "29.5",
+          "shap": 0.6263683770798633
+        },
+        {
+          "feature": "merchant_category",
+          "value": "Crypto Exchange",
+          "shap": -0.5832307773061745
+        },
+        {
+          "feature": "card_type",
+          "value": "Discover",
+          "shap": 0.4762517712522338
+        },
+        {
+          "feature": "amount_usd",
+          "value": "3236.34",
+          "shap": 0.3616254908923748
+        },
+        {
+          "feature": "cvv_retry_count",
+          "value": "0",
+          "shap": -0.35375413159530983
+        },
+        {
+          "feature": "prior_disputes",
+          "value": "1",
+          "shap": 0.344677171545848
+        },
+        {
+          "feature": "time_of_day_hour",
+          "value": "19",
+          "shap": -0.28535976502793764
+        },
+        {
+          "feature": "day_of_week",
+          "value": "0",
+          "shap": -0.1496844294080105
+        },
+        {
+          "feature": "ip_country_mismatch",
+          "value": "False",
+          "shap": -0.14407590709813403
+        },
+        {
+          "feature": "used_vpn",
+          "value": "False",
+          "shap": -0.13532000366990465
+        },
+        {
+          "feature": "customer_age",
+          "value": "33",
+          "shap": -0.11582221834027245
+        },
+        {
+          "feature": "billing_shipping_mismatch",
+          "value": "False",
+          "shap": -0.10802784984286125
+        },
+        {
+          "feature": "channel",
+          "value": "In-App",
+          "shap": -0.10235380842554814
+        },
+        {
+          "feature": "card_age_months",
+          "value": "43",
+          "shap": 0.09407901286475219
+        },
+        {
+          "feature": "is_foreign_transaction",
+          "value": "False",
+          "shap": -0.07292861200540103
+        },
+        {
+          "feature": "hours_since_last_txn",
+          "value": "18.59",
+          "shap": -0.06545665136600586
+        },
+        {
+          "feature": "is_ai_generated_scam_attempt",
+          "value": "False",
+          "shap": -0.044843734195367906
+        },
+        {
+          "feature": "account_balance_usd",
+          "value": "1149.93",
+          "shap": -0.015171511038102957
+        },
+        {
+          "feature": "txn_count_last_24h",
+          "value": "10",
+          "shap": -0.010204313429451868
+        },
+        {
+          "feature": "distance_from_home_km",
+          "value": "24.51",
+          "shap": -0.006880405162516191
+        },
+        {
+          "feature": "device_type",
+          "value": "Android Phone",
+          "shap": 0.005478361395597123
+        }
+      ]
+    },
+    {
+      "label": "false alarm",
+      "transaction_id": 19824,
+      "oof_score": 0.932589,
+      "amount_usd": 18.98,
+      "is_fraud": 0,
+      "base_log_odds": -6.419409115723568,
+      "log_odds": 2.7905835542520334,
+      "contributions": [
+        {
+          "feature": "cvv_retry_count",
+          "value": "2",
+          "shap": 3.5269905413734586
+        },
+        {
+          "feature": "ip_country_mismatch",
+          "value": "True",
+          "shap": 2.324033850471614
+        },
+        {
+          "feature": "auth_method",
+          "value": "No Authentication",
+          "shap": 1.7187622293116493
+        },
+        {
+          "feature": "used_vpn",
+          "value": "True",
+          "shap": 1.4067883002606327
+        },
+        {
+          "feature": "merchant_category",
+          "value": "Streaming",
+          "shap": 0.6064368441384091
+        },
+        {
+          "feature": "velocity_score",
+          "value": "10.9",
+          "shap": -0.5813312453275855
+        },
+        {
+          "feature": "is_new_merchant",
+          "value": "False",
+          "shap": -0.3208289350524855
+        },
+        {
+          "feature": "merchant_risk_score",
+          "value": "42.0",
+          "shap": 0.2800137003981159
+        },
+        {
+          "feature": "customer_age",
+          "value": "81",
+          "shap": 0.2175565780127822
+        },
+        {
+          "feature": "time_of_day_hour",
+          "value": "6",
+          "shap": 0.2121577210645924
+        },
+        {
+          "feature": "prior_disputes",
+          "value": "0",
+          "shap": -0.1342905846408435
+        },
+        {
+          "feature": "card_age_months",
+          "value": "42",
+          "shap": 0.11776791968117625
+        },
+        {
+          "feature": "billing_shipping_mismatch",
+          "value": "False",
+          "shap": -0.10802784984286125
+        },
+        {
+          "feature": "amount_usd",
+          "value": "18.98",
+          "shap": -0.1038004031329254
+        },
+        {
+          "feature": "day_of_week",
+          "value": "5",
+          "shap": 0.10014875480765031
+        },
+        {
+          "feature": "is_foreign_transaction",
+          "value": "False",
+          "shap": -0.07292861200540103
+        },
+        {
+          "feature": "account_balance_usd",
+          "value": "12228.94",
+          "shap": 0.049302315989268305
+        },
+        {
+          "feature": "is_ai_generated_scam_attempt",
+          "value": "False",
+          "shap": -0.044843734195367906
+        },
+        {
+          "feature": "card_type",
+          "value": "Visa",
+          "shap": -0.03612372183184465
+        },
+        {
+          "feature": "hours_since_last_txn",
+          "value": "3.86",
+          "shap": 0.034323396625856546
+        },
+        {
+          "feature": "distance_from_home_km",
+          "value": "10.87",
+          "shap": 0.03239965354563295
+        },
+        {
+          "feature": "channel",
+          "value": "POS",
+          "shap": -0.02177477359873175
+        },
+        {
+          "feature": "device_type",
+          "value": "Android Phone",
+          "shap": 0.005478361395597123
+        },
+        {
+          "feature": "txn_count_last_24h",
+          "value": "2",
+          "shap": 0.0017823625272124332
+        }
+      ]
+    }
+  ]
+}

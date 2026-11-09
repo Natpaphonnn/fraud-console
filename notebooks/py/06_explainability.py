@@ -254,10 +254,13 @@ display(
 - **Caught fraud** (id {ex["caught fraud"]["transaction_id"]}): pushed up mainly by
   {top_reasons(ex["caught fraud"])}.
 - **Missed fraud** (id {ex["missed fraud"]["transaction_id"]}, ${ex["missed fraud"]["amount_usd"]:,.2f}):
-  held down by {top_reasons(ex["missed fraud"], sign=-1)} — it looked ordinary on the features
-  the model relies on.
+  pushed up by {top_reasons(ex["missed fraud"], k=2)} but pulled down by
+  {top_reasons(ex["missed fraud"], sign=-1)}; starting from the low base log-odds
+  ({base_value:.2f}, fraud is rare) it ended at p = {1 / (1 + np.exp(-ex["missed fraud"]["log_odds"])):.3f},
+  below the {thr:.4f} threshold. One strong signal without the other red flags is not enough.
 - **False alarm** (id {ex["false alarm"]["transaction_id"]}): pushed up by
-  {top_reasons(ex["false alarm"])}, i.e. several red flags on a legitimate transaction.
+  {top_reasons(ex["false alarm"])} — the same red flags as the caught fraud, on a legitimate
+  transaction. From these features alone the two are hard to tell apart.
 - SHAP values explain the uncalibrated model (additivity error {max_err:.1e}); they describe what
   the model learned from this dataset, not causes of fraud.
 """)
