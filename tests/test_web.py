@@ -2,8 +2,6 @@
 
 import json
 import re
-import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -78,11 +76,3 @@ def test_links_must_be_https(tmp_path):
 def test_vercel_config_is_valid_json():
     cfg = json.loads((SITE / "vercel.json").read_text())
     assert any(h["key"] == "Content-Security-Policy" for h in cfg["headers"][0]["headers"])
-
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
-def test_simulator_js():
-    r = subprocess.run(
-        ["node", "--test", "web/tests/"], cwd=REPO, capture_output=True, text=True, timeout=120
-    )
-    assert r.returncode == 0, r.stdout + r.stderr

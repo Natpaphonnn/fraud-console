@@ -12,13 +12,15 @@ import json
 import re
 from pathlib import Path
 
+import pandas as pd
+
 from fraud_e2e import config as C
 from fraud_e2e.summary import LINK_LABELS, build_context, load_links, render
 
 WEB = C.ROOT / "web"
 SRC = WEB / "src"
 SITE = WEB / "site"
-STATIC = ("style.css", "app.js", "sim.js", "favicon.svg", "vercel.json")
+STATIC = ("style.css", "theme.js", "app.js", "sim.js", "model.js", "favicon.svg", "vercel.json")
 TEMPLATE = "index.html.tmpl"
 SHAP_TOP = 10
 
@@ -175,8 +177,44 @@ def canonical_html(links: dict[str, str]) -> str:
     return f'<link rel="canonical" href="{u}">\n<meta property="og:url" content="{u}">'
 
 
+def model_data() -> dict:
+    m = _json("p4_web_model")
+    return {
+        "source": "reports/p4_web_model.json",
+        "spec_id": m["spec_id"],
+        "features": m["features"],
+        "fold_models": m["fold_models"],
+        "final_model": m["final_model"],
+    }
+
+
+def stream_data() -> dict:
+    """The scored dev sample, column-wise; categoricals as codes into `levels`."""
+    m = _json("p4_web_model")
+    rows = pd.read_csv(C.REPORTS_DIR / "p4_web_stream.csv.gz")
+    levels = {f: sorted(rows[f].astype(str).unique()) for f in m["categorical"]}
+    cols = {}
+    for f in m["features"]:
+        if f in levels:
+            code = {v: i for i, v in enumerate(levels[f])}
+            cols[f] = [code[str(v)] for v in rows[f]]
+        elif f in m["boolean"]:
+            cols[f] = rows[f].astype(int).tolist()
+        else:
+            cols[f] = rows[f].tolist()
+    return {
+        "source": "reports/p4_web_stream.csv.gz",
+        **m["stream"],
+        "id": rows[C.ID_COL].astype(int).tolist(),
+        "fold": rows["fold"].astype(int).tolist(),
+        "y": rows[C.TARGET].astype(int).tolist(),
+        "levels": levels,
+        "cols": cols,
+    }
+
+
 def page_data() -> dict:
-    return {"sim": sim_data()}
+    return {"sim": sim_data(), "model": model_data(), "stream": stream_data()}
 
 
 def _data_json(data: dict) -> str:
@@ -189,6 +227,7 @@ def build_site() -> dict[str, bytes]:
     ctx = {k: _inline_md(v) for k, v in build_context().items()}
     links = load_links()
     meta = _json("p2_threshold_web")["_meta"]
+    stream = _json("p4_web_model")["stream"]
     ctx |= {
         "links_html": links_html(links),
         "canonical_html": canonical_html(links),
@@ -196,6 +235,8 @@ def build_site() -> dict[str, bytes]:
         "forest_html": forest_html(forest_rows()),
         "data_json": _data_json(page_data()),
         "data_sha_short": meta["data_sha256"][:12],
+        "stream_n": f"{stream['n_rows']:,}",
+        "stream_fraud": f"{stream['n_fraud']}",
     }
     files = {"index.html": render((SRC / TEMPLATE).read_text(), ctx).encode()}
     for name in STATIC:

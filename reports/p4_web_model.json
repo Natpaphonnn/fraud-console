@@ -1,0 +1,1374 @@
+{
+  "_meta": {
+    "data_sha256": "4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61",
+    "seed": 42
+  },
+  "description": "Logistic pipeline exported for in-browser scoring (see fraud_e2e.export).",
+  "spec": {
+    "params": {},
+    "imbalance": "none",
+    "drop": [],
+    "calibration": null,
+    "model": "logreg"
+  },
+  "spec_id": "9d9523a408a3",
+  "features": [
+    "merchant_category",
+    "card_type",
+    "auth_method",
+    "channel",
+    "device_type",
+    "is_foreign_transaction",
+    "is_new_merchant",
+    "used_vpn",
+    "ip_country_mismatch",
+    "billing_shipping_mismatch",
+    "is_ai_generated_scam_attempt",
+    "amount_usd",
+    "hours_since_last_txn",
+    "distance_from_home_km",
+    "card_age_months",
+    "customer_age",
+    "account_balance_usd",
+    "velocity_score",
+    "merchant_risk_score",
+    "txn_count_last_24h",
+    "cvv_retry_count",
+    "prior_disputes",
+    "time_of_day_hour",
+    "day_of_week"
+  ],
+  "categorical": [
+    "merchant_category",
+    "card_type",
+    "auth_method",
+    "channel",
+    "device_type"
+  ],
+  "boolean": [
+    "is_foreign_transaction",
+    "is_new_merchant",
+    "used_vpn",
+    "ip_country_mismatch",
+    "billing_shipping_mismatch",
+    "is_ai_generated_scam_attempt"
+  ],
+  "stream": {
+    "n_rows": 2000,
+    "n_fraud": 34,
+    "source": "dev split, stratified random sample, random order",
+    "scores": "out-of-fold: each row scored by the CV repeat-0 model that was not trained on it",
+    "seed": 42
+  },
+  "fold_models": {
+    "0": {
+      "intercept": -7.099778408092606,
+      "categorical": [
+        {
+          "feature": "merchant_category",
+          "categories": [
+            "Crypto Exchange",
+            "Electronics",
+            "Fuel",
+            "Gaming",
+            "Gift Cards",
+            "Groceries",
+            "Healthcare",
+            "Online Retail",
+            "Restaurants",
+            "Streaming",
+            "Travel",
+            "Utilities"
+          ],
+          "coef": [
+            0.03946351627613951,
+            0.023903845816849553,
+            -0.17127412166727501,
+            0.0864348633520479,
+            -0.19444374617862328,
+            -0.1641542033621758,
+            0.3384443056846409,
+            -0.3133993179890975,
+            -0.22800745549740553,
+            0.43885776555416783,
+            -0.3183008860166983,
+            0.4849721472043646
+          ]
+        },
+        {
+          "feature": "card_type",
+          "categories": [
+            "Amex",
+            "Discover",
+            "Mastercard",
+            "RuPay",
+            "Visa"
+          ],
+          "coef": [
+            0.1868360624465909,
+            0.33631809035781274,
+            -0.06427017506726145,
+            -0.4129290895251453,
+            -0.023458175035064595
+          ]
+        },
+        {
+          "feature": "auth_method",
+          "categories": [
+            "3D Secure",
+            "Biometric",
+            "No Authentication",
+            "OTP",
+            "PIN"
+          ],
+          "coef": [
+            0.16891893462451832,
+            -1.0703023057809467,
+            1.6938203128662142,
+            0.03957390486133422,
+            -0.8095141333941899
+          ]
+        },
+        {
+          "feature": "channel",
+          "categories": [
+            "ATM",
+            "Contactless",
+            "In-App",
+            "Online",
+            "POS"
+          ],
+          "coef": [
+            0.2587589654538334,
+            -0.14338031397848747,
+            -0.07334818714874608,
+            -0.04739323181753187,
+            0.027859480667873027
+          ]
+        },
+        {
+          "feature": "device_type",
+          "categories": [
+            "ATM Machine",
+            "Android Phone",
+            "Mac",
+            "POS Terminal",
+            "Smart Watch",
+            "Tablet",
+            "Windows PC",
+            "iPhone"
+          ],
+          "coef": [
+            0.0757810949402015,
+            0.10534158985342208,
+            0.04682819464259392,
+            0.12482035633409777,
+            -0.2196744134196426,
+            0.23202426722823563,
+            -0.36553679570786674,
+            0.02291241930588009
+          ]
+        }
+      ],
+      "boolean": [
+        {
+          "feature": "is_foreign_transaction",
+          "coef": 1.2423173886657723
+        },
+        {
+          "feature": "is_new_merchant",
+          "coef": 1.429622058937556
+        },
+        {
+          "feature": "used_vpn",
+          "coef": 1.4916938333845005
+        },
+        {
+          "feature": "ip_country_mismatch",
+          "coef": 2.588696252782841
+        },
+        {
+          "feature": "billing_shipping_mismatch",
+          "coef": 2.404782537322669
+        },
+        {
+          "feature": "is_ai_generated_scam_attempt",
+          "coef": 2.3982235259260336
+        }
+      ],
+      "log_scaled": [
+        {
+          "feature": "amount_usd",
+          "mean": 4.12283630922684,
+          "scale": 1.196703275636746,
+          "coef": 0.004891965238687686
+        },
+        {
+          "feature": "account_balance_usd",
+          "mean": 7.60798355904378,
+          "scale": 1.000611166663713,
+          "coef": -0.015114830915920939
+        }
+      ],
+      "scaled": [
+        {
+          "feature": "hours_since_last_txn",
+          "mean": 8.9707234375,
+          "scale": 8.826267610364145,
+          "coef": -0.0010387004786784693
+        },
+        {
+          "feature": "distance_from_home_km",
+          "mean": 22.109378906250004,
+          "scale": 22.217208369798737,
+          "coef": -0.05972785752965042
+        },
+        {
+          "feature": "card_age_months",
+          "mean": 46.97765625,
+          "scale": 6.7627634519356015,
+          "coef": -0.12260825081177842
+        },
+        {
+          "feature": "customer_age",
+          "mean": 49.66671875,
+          "scale": 18.382558441588007,
+          "coef": 0.10325694862831691
+        },
+        {
+          "feature": "velocity_score",
+          "mean": 19.8610625,
+          "scale": 12.41228434338715,
+          "coef": 0.9070849482452267
+        },
+        {
+          "feature": "merchant_risk_score",
+          "mean": 37.465218750000005,
+          "scale": 17.089374520872564,
+          "coef": 0.8951304693606665
+        },
+        {
+          "feature": "txn_count_last_24h",
+          "mean": 3.193359375,
+          "scale": 1.7841409773612649,
+          "coef": -0.05266596405778314
+        },
+        {
+          "feature": "cvv_retry_count",
+          "mean": 0.185625,
+          "scale": 0.42874772229715696,
+          "coef": 0.8159310592275719
+        },
+        {
+          "feature": "prior_disputes",
+          "mean": 0.281015625,
+          "scale": 0.5294592463125556,
+          "coef": 0.2163796225717514
+        },
+        {
+          "feature": "time_of_day_hour",
+          "mean": 11.56171875,
+          "scale": 6.901886303460702,
+          "coef": -0.23411473656188822
+        },
+        {
+          "feature": "day_of_week",
+          "mean": 2.99890625,
+          "scale": 2.0009369814441778,
+          "coef": 0.10192990423873852
+        }
+      ]
+    },
+    "1": {
+      "intercept": -6.970680798957761,
+      "categorical": [
+        {
+          "feature": "merchant_category",
+          "categories": [
+            "Crypto Exchange",
+            "Electronics",
+            "Fuel",
+            "Gaming",
+            "Gift Cards",
+            "Groceries",
+            "Healthcare",
+            "Online Retail",
+            "Restaurants",
+            "Streaming",
+            "Travel",
+            "Utilities"
+          ],
+          "coef": [
+            -0.6069657725753408,
+            -0.0914310902472701,
+            0.2139827793811322,
+            -0.03761113002288754,
+            -0.09954426650273523,
+            0.06236807021075676,
+            0.4126920450122589,
+            -0.5309444124344459,
+            -0.11197418868960261,
+            0.3660810247794259,
+            -0.2905460544156372,
+            0.6665759436402616
+          ]
+        },
+        {
+          "feature": "card_type",
+          "categories": [
+            "Amex",
+            "Discover",
+            "Mastercard",
+            "RuPay",
+            "Visa"
+          ],
+          "coef": [
+            0.3069910894027721,
+            0.36325986318244075,
+            -0.07023678957118965,
+            -0.5545319800831818,
+            -0.09279923479492803
+          ]
+        },
+        {
+          "feature": "auth_method",
+          "categories": [
+            "3D Secure",
+            "Biometric",
+            "No Authentication",
+            "OTP",
+            "PIN"
+          ],
+          "coef": [
+            0.019111569729177477,
+            -0.9584091300392023,
+            1.6059528997474446,
+            -0.05739717520028386,
+            -0.656575216101214
+          ]
+        },
+        {
+          "feature": "channel",
+          "categories": [
+            "ATM",
+            "Contactless",
+            "In-App",
+            "Online",
+            "POS"
+          ],
+          "coef": [
+            0.2653786179227845,
+            -0.11373272777612307,
+            -0.08949601718652334,
+            -0.014590479744384596,
+            -0.09487644507983645
+          ]
+        },
+        {
+          "feature": "device_type",
+          "categories": [
+            "ATM Machine",
+            "Android Phone",
+            "Mac",
+            "POS Terminal",
+            "Smart Watch",
+            "Tablet",
+            "Windows PC",
+            "iPhone"
+          ],
+          "coef": [
+            0.16730504548407846,
+            -0.03845544266768114,
+            0.04563216619781987,
+            -0.0886175589622986,
+            0.04220875226884085,
+            0.12871930740891305,
+            -0.37262730959536317,
+            0.06851798800162184
+          ]
+        }
+      ],
+      "boolean": [
+        {
+          "feature": "is_foreign_transaction",
+          "coef": 1.0827470525500928
+        },
+        {
+          "feature": "is_new_merchant",
+          "coef": 1.4728805446100681
+        },
+        {
+          "feature": "used_vpn",
+          "coef": 1.549548247539372
+        },
+        {
+          "feature": "ip_country_mismatch",
+          "coef": 2.4319843614210668
+        },
+        {
+          "feature": "billing_shipping_mismatch",
+          "coef": 2.455552747299246
+        },
+        {
+          "feature": "is_ai_generated_scam_attempt",
+          "coef": 2.4092509539405538
+        }
+      ],
+      "log_scaled": [
+        {
+          "feature": "amount_usd",
+          "mean": 4.132581026658395,
+          "scale": 1.1936291509692334,
+          "coef": 0.14402198590009888
+        },
+        {
+          "feature": "account_balance_usd",
+          "mean": 7.601214908563509,
+          "scale": 0.9993466569771515,
+          "coef": 0.07340563555378592
+        }
+      ],
+      "scaled": [
+        {
+          "feature": "hours_since_last_txn",
+          "mean": 8.929287500000001,
+          "scale": 8.78607814022239,
+          "coef": -0.09286315810771884
+        },
+        {
+          "feature": "distance_from_home_km",
+          "mean": 22.273688281249996,
+          "scale": 22.197719738565354,
+          "coef": -0.08132286455196074
+        },
+        {
+          "feature": "card_age_months",
+          "mean": 46.992578125,
+          "scale": 6.7917015939138174,
+          "coef": -0.1685645916285115
+        },
+        {
+          "feature": "customer_age",
+          "mean": 49.739375,
+          "scale": 18.417100059710133,
+          "coef": 0.1171385012520934
+        },
+        {
+          "feature": "velocity_score",
+          "mean": 19.84528125,
+          "scale": 12.399082170503528,
+          "coef": 0.7336658870015443
+        },
+        {
+          "feature": "merchant_risk_score",
+          "mean": 37.408796875,
+          "scale": 17.001538463180037,
+          "coef": 1.058096443489258
+        },
+        {
+          "feature": "txn_count_last_24h",
+          "mean": 3.184453125,
+          "scale": 1.778418938180128,
+          "coef": 0.017284472732845436
+        },
+        {
+          "feature": "cvv_retry_count",
+          "mean": 0.180390625,
+          "scale": 0.4206094951521059,
+          "coef": 0.82767522573773
+        },
+        {
+          "feature": "prior_disputes",
+          "mean": 0.278515625,
+          "scale": 0.5301895148254625,
+          "coef": 0.21762604195670787
+        },
+        {
+          "feature": "time_of_day_hour",
+          "mean": 11.523203125,
+          "scale": 6.9144047368511945,
+          "coef": -0.3026568361973407
+        },
+        {
+          "feature": "day_of_week",
+          "mean": 2.993828125,
+          "scale": 1.9985250893994262,
+          "coef": 0.003617812593816297
+        }
+      ]
+    },
+    "2": {
+      "intercept": -6.937695465477287,
+      "categorical": [
+        {
+          "feature": "merchant_category",
+          "categories": [
+            "Crypto Exchange",
+            "Electronics",
+            "Fuel",
+            "Gaming",
+            "Gift Cards",
+            "Groceries",
+            "Healthcare",
+            "Online Retail",
+            "Restaurants",
+            "Streaming",
+            "Travel",
+            "Utilities"
+          ],
+          "coef": [
+            -0.6583015113509636,
+            -0.16472654839913062,
+            -0.14721524684011453,
+            0.08172151069733215,
+            -0.054955099047910565,
+            -0.16165929515930752,
+            0.5357569546399003,
+            -0.33327187703929756,
+            -0.19972973175786118,
+            0.6154586231691249,
+            -0.2871784504989423,
+            0.7683671371141982
+          ]
+        },
+        {
+          "feature": "card_type",
+          "categories": [
+            "Amex",
+            "Discover",
+            "Mastercard",
+            "RuPay",
+            "Visa"
+          ],
+          "coef": [
+            0.08826656476396676,
+            0.4933609472955833,
+            -0.005824800584965442,
+            -0.4914512279798504,
+            -0.09008501796770657
+          ]
+        },
+        {
+          "feature": "auth_method",
+          "categories": [
+            "3D Secure",
+            "Biometric",
+            "No Authentication",
+            "OTP",
+            "PIN"
+          ],
+          "coef": [
+            0.10576743246245676,
+            -0.915308957858466,
+            1.500539413868278,
+            -0.01734357743011511,
+            -0.6793878455151372
+          ]
+        },
+        {
+          "feature": "channel",
+          "categories": [
+            "ATM",
+            "Contactless",
+            "In-App",
+            "Online",
+            "POS"
+          ],
+          "coef": [
+            0.44643569604929645,
+            -0.12833216444039997,
+            -0.2223409559863709,
+            0.01606887908395928,
+            -0.11756498917946094
+          ]
+        },
+        {
+          "feature": "device_type",
+          "categories": [
+            "ATM Machine",
+            "Android Phone",
+            "Mac",
+            "POS Terminal",
+            "Smart Watch",
+            "Tablet",
+            "Windows PC",
+            "iPhone"
+          ],
+          "coef": [
+            0.2273781278027942,
+            -0.09458251691695752,
+            0.0405854129889787,
+            -0.1928711612393456,
+            0.0039968565879052904,
+            0.05201603203956171,
+            -0.17146665246748213,
+            0.1292103667315703
+          ]
+        }
+      ],
+      "boolean": [
+        {
+          "feature": "is_foreign_transaction",
+          "coef": 1.1794743046426204
+        },
+        {
+          "feature": "is_new_merchant",
+          "coef": 1.336512860634196
+        },
+        {
+          "feature": "used_vpn",
+          "coef": 1.6645682442654786
+        },
+        {
+          "feature": "ip_country_mismatch",
+          "coef": 2.4113170854827604
+        },
+        {
+          "feature": "billing_shipping_mismatch",
+          "coef": 2.436899915331246
+        },
+        {
+          "feature": "is_ai_generated_scam_attempt",
+          "coef": 2.2660457852463796
+        }
+      ],
+      "log_scaled": [
+        {
+          "feature": "amount_usd",
+          "mean": 4.136008771118359,
+          "scale": 1.1944031847230931,
+          "coef": 0.11831568538102781
+        },
+        {
+          "feature": "account_balance_usd",
+          "mean": 7.6015981123049094,
+          "scale": 1.0015988134668348,
+          "coef": 0.05058765347279643
+        }
+      ],
+      "scaled": [
+        {
+          "feature": "hours_since_last_txn",
+          "mean": 8.830707031249998,
+          "scale": 8.790929309971688,
+          "coef": -0.07535377196347903
+        },
+        {
+          "feature": "distance_from_home_km",
+          "mean": 22.066700781250002,
+          "scale": 22.078036642735423,
+          "coef": -0.01817098270282186
+        },
+        {
+          "feature": "card_age_months",
+          "mean": 46.908203125,
+          "scale": 6.75028436132436,
+          "coef": -0.15638782283853864
+        },
+        {
+          "feature": "customer_age",
+          "mean": 49.58546875,
+          "scale": 18.406534372140058,
+          "coef": 0.1551514971972298
+        },
+        {
+          "feature": "velocity_score",
+          "mean": 19.863914062499997,
+          "scale": 12.360157898419613,
+          "coef": 0.7974011761833982
+        },
+        {
+          "feature": "merchant_risk_score",
+          "mean": 37.444828125,
+          "scale": 17.138853788664196,
+          "coef": 1.0666766506076109
+        },
+        {
+          "feature": "txn_count_last_24h",
+          "mean": 3.191953125,
+          "scale": 1.7756462549738712,
+          "coef": 0.012327800643419073
+        },
+        {
+          "feature": "cvv_retry_count",
+          "mean": 0.181640625,
+          "scale": 0.4230364149214691,
+          "coef": 0.8258562762118334
+        },
+        {
+          "feature": "prior_disputes",
+          "mean": 0.281796875,
+          "scale": 0.5322827220944095,
+          "coef": 0.28026453451288236
+        },
+        {
+          "feature": "time_of_day_hour",
+          "mean": 11.5846875,
+          "scale": 6.931011598413592,
+          "coef": -0.23028591028595896
+        },
+        {
+          "feature": "day_of_week",
+          "mean": 2.987421875,
+          "scale": 2.004233311211917,
+          "coef": 0.0962997308806705
+        }
+      ]
+    },
+    "3": {
+      "intercept": -6.848735596724396,
+      "categorical": [
+        {
+          "feature": "merchant_category",
+          "categories": [
+            "Crypto Exchange",
+            "Electronics",
+            "Fuel",
+            "Gaming",
+            "Gift Cards",
+            "Groceries",
+            "Healthcare",
+            "Online Retail",
+            "Restaurants",
+            "Streaming",
+            "Travel",
+            "Utilities"
+          ],
+          "coef": [
+            -0.6727852496649263,
+            -0.39120290604085295,
+            0.17928790602177652,
+            0.29079118365056333,
+            -0.1247891729500703,
+            0.06117181774027163,
+            0.2815631469019115,
+            -0.19596712838671598,
+            -0.09337160863564402,
+            0.6982760210969094,
+            -0.38530791933211733,
+            0.21605038681873895
+          ]
+        },
+        {
+          "feature": "card_type",
+          "categories": [
+            "Amex",
+            "Discover",
+            "Mastercard",
+            "RuPay",
+            "Visa"
+          ],
+          "coef": [
+            0.1290077572852025,
+            0.37895121974138146,
+            -0.28239977456837745,
+            -0.17793376957286688,
+            -0.18390895566549503
+          ]
+        },
+        {
+          "feature": "auth_method",
+          "categories": [
+            "3D Secure",
+            "Biometric",
+            "No Authentication",
+            "OTP",
+            "PIN"
+          ],
+          "coef": [
+            0.0389205391931158,
+            -0.8989134724379871,
+            1.6624313754482767,
+            -0.11563037745172391,
+            -0.8230915875318338
+          ]
+        },
+        {
+          "feature": "channel",
+          "categories": [
+            "ATM",
+            "Contactless",
+            "In-App",
+            "Online",
+            "POS"
+          ],
+          "coef": [
+            0.19577812566345054,
+            0.053197410652727616,
+            -0.18634222868285794,
+            -0.0768051615038893,
+            -0.12211166890960164
+          ]
+        },
+        {
+          "feature": "device_type",
+          "categories": [
+            "ATM Machine",
+            "Android Phone",
+            "Mac",
+            "POS Terminal",
+            "Smart Watch",
+            "Tablet",
+            "Windows PC",
+            "iPhone"
+          ],
+          "coef": [
+            0.12746831181274215,
+            0.12977386821845746,
+            -0.021574695356167253,
+            -0.1231862689570829,
+            -0.07315275976740827,
+            -0.11131133164456875,
+            -0.15137513609593395,
+            0.08707448900979194
+          ]
+        }
+      ],
+      "boolean": [
+        {
+          "feature": "is_foreign_transaction",
+          "coef": 1.017286724083874
+        },
+        {
+          "feature": "is_new_merchant",
+          "coef": 1.32062347793116
+        },
+        {
+          "feature": "used_vpn",
+          "coef": 1.4498387854823571
+        },
+        {
+          "feature": "ip_country_mismatch",
+          "coef": 2.3724176492731512
+        },
+        {
+          "feature": "billing_shipping_mismatch",
+          "coef": 2.5243430069641266
+        },
+        {
+          "feature": "is_ai_generated_scam_attempt",
+          "coef": 2.6063557849215258
+        }
+      ],
+      "log_scaled": [
+        {
+          "feature": "amount_usd",
+          "mean": 4.133294001535588,
+          "scale": 1.196975929677541,
+          "coef": 0.10530798449549741
+        },
+        {
+          "feature": "account_balance_usd",
+          "mean": 7.611334173904038,
+          "scale": 0.9986693410845852,
+          "coef": -0.012712244737278052
+        }
+      ],
+      "scaled": [
+        {
+          "feature": "hours_since_last_txn",
+          "mean": 8.956626562499999,
+          "scale": 8.91118366127191,
+          "coef": -0.0851846041292131
+        },
+        {
+          "feature": "distance_from_home_km",
+          "mean": 22.052467187499996,
+          "scale": 21.95252716389928,
+          "coef": -0.09042878529428583
+        },
+        {
+          "feature": "card_age_months",
+          "mean": 46.986015625,
+          "scale": 6.754758142395319,
+          "coef": -0.18142331614645618
+        },
+        {
+          "feature": "customer_age",
+          "mean": 49.665234375,
+          "scale": 18.462611139850136,
+          "coef": 0.1365768100314403
+        },
+        {
+          "feature": "velocity_score",
+          "mean": 19.8845078125,
+          "scale": 12.39372811993536,
+          "coef": 0.8362189298249185
+        },
+        {
+          "feature": "merchant_risk_score",
+          "mean": 37.4201875,
+          "scale": 17.0185855747428,
+          "coef": 1.0623035059543484
+        },
+        {
+          "feature": "txn_count_last_24h",
+          "mean": 3.18671875,
+          "scale": 1.777325549357359,
+          "coef": -0.06306261956345718
+        },
+        {
+          "feature": "cvv_retry_count",
+          "mean": 0.183203125,
+          "scale": 0.42696134484310677,
+          "coef": 0.8515339165691044
+        },
+        {
+          "feature": "prior_disputes",
+          "mean": 0.28,
+          "scale": 0.5294808778416837,
+          "coef": 0.31075307082356735
+        },
+        {
+          "feature": "time_of_day_hour",
+          "mean": 11.5178125,
+          "scale": 6.931472261709178,
+          "coef": -0.252784532534624
+        },
+        {
+          "feature": "day_of_week",
+          "mean": 3.00390625,
+          "scale": 2.004912028297236,
+          "coef": 0.13493372296983594
+        }
+      ]
+    },
+    "4": {
+      "intercept": -6.867946558789082,
+      "categorical": [
+        {
+          "feature": "merchant_category",
+          "categories": [
+            "Crypto Exchange",
+            "Electronics",
+            "Fuel",
+            "Gaming",
+            "Gift Cards",
+            "Groceries",
+            "Healthcare",
+            "Online Retail",
+            "Restaurants",
+            "Streaming",
+            "Travel",
+            "Utilities"
+          ],
+          "coef": [
+            -0.5516326345221804,
+            -0.3790415318117095,
+            0.3293418438060422,
+            0.10900509941879455,
+            0.06333556855211839,
+            0.04707404771793335,
+            0.5477288488280413,
+            -0.39318659783760646,
+            -0.043986781601390364,
+            0.3812484477013783,
+            -0.4401293403487787,
+            0.386703491778193
+          ]
+        },
+        {
+          "feature": "card_type",
+          "categories": [
+            "Amex",
+            "Discover",
+            "Mastercard",
+            "RuPay",
+            "Visa"
+          ],
+          "coef": [
+            0.3015689580240441,
+            0.2927129224444044,
+            -0.1950440934567461,
+            -0.19107004857657184,
+            -0.15170727675428486
+          ]
+        },
+        {
+          "feature": "auth_method",
+          "categories": [
+            "3D Secure",
+            "Biometric",
+            "No Authentication",
+            "OTP",
+            "PIN"
+          ],
+          "coef": [
+            0.06939536943046547,
+            -0.9323148977562618,
+            1.564520196427792,
+            -0.06309988427098447,
+            -0.582040322150163
+          ]
+        },
+        {
+          "feature": "channel",
+          "categories": [
+            "ATM",
+            "Contactless",
+            "In-App",
+            "Online",
+            "POS"
+          ],
+          "coef": [
+            0.2681002446430134,
+            -0.06965513467003588,
+            -0.09258591124312787,
+            -0.002945083829801608,
+            -0.046453653219206
+          ]
+        },
+        {
+          "feature": "device_type",
+          "categories": [
+            "ATM Machine",
+            "Android Phone",
+            "Mac",
+            "POS Terminal",
+            "Smart Watch",
+            "Tablet",
+            "Windows PC",
+            "iPhone"
+          ],
+          "coef": [
+            0.24681676681915543,
+            -0.05243736091312527,
+            0.2159048059431818,
+            0.00954686872899942,
+            0.04897538380328015,
+            -0.22961459433635045,
+            -0.21339660626222196,
+            0.030665197897920767
+          ]
+        }
+      ],
+      "boolean": [
+        {
+          "feature": "is_foreign_transaction",
+          "coef": 1.3480810164112413
+        },
+        {
+          "feature": "is_new_merchant",
+          "coef": 1.3604059554579535
+        },
+        {
+          "feature": "used_vpn",
+          "coef": 1.5129377044821146
+        },
+        {
+          "feature": "ip_country_mismatch",
+          "coef": 2.339045585299501
+        },
+        {
+          "feature": "billing_shipping_mismatch",
+          "coef": 2.4338387746464156
+        },
+        {
+          "feature": "is_ai_generated_scam_attempt",
+          "coef": 2.214061745443001
+        }
+      ],
+      "log_scaled": [
+        {
+          "feature": "amount_usd",
+          "mean": 4.122378459152736,
+          "scale": 1.1904662455059416,
+          "coef": 0.07885709389085124
+        },
+        {
+          "feature": "account_balance_usd",
+          "mean": 7.6000895356850675,
+          "scale": 1.0016672589398483,
+          "coef": 0.03646177911202499
+        }
+      ],
+      "scaled": [
+        {
+          "feature": "hours_since_last_txn",
+          "mean": 8.94756171875,
+          "scale": 8.866008492768717,
+          "coef": -0.05573287916148723
+        },
+        {
+          "feature": "distance_from_home_km",
+          "mean": 22.10166171875,
+          "scale": 22.098434884050686,
+          "coef": -0.0776152780601427
+        },
+        {
+          "feature": "card_age_months",
+          "mean": 46.992734375,
+          "scale": 6.7688297796364605,
+          "coef": -0.1658010035027263
+        },
+        {
+          "feature": "customer_age",
+          "mean": 49.723828125,
+          "scale": 18.402408836086078,
+          "coef": 0.12608991637349115
+        },
+        {
+          "feature": "velocity_score",
+          "mean": 19.811171875,
+          "scale": 12.326730489639537,
+          "coef": 0.7461716319348493
+        },
+        {
+          "feature": "merchant_risk_score",
+          "mean": 37.4491875,
+          "scale": 17.010988616622015,
+          "coef": 0.9965720121962367
+        },
+        {
+          "feature": "txn_count_last_24h",
+          "mean": 3.191328125,
+          "scale": 1.784753953233886,
+          "coef": 0.07577121680067321
+        },
+        {
+          "feature": "cvv_retry_count",
+          "mean": 0.180703125,
+          "scale": 0.4223292620873367,
+          "coef": 0.7669683458412077
+        },
+        {
+          "feature": "prior_disputes",
+          "mean": 0.280546875,
+          "scale": 0.5314746710123959,
+          "coef": 0.24128254134184274
+        },
+        {
+          "feature": "time_of_day_hour",
+          "mean": 11.530703125,
+          "scale": 6.9458954475370005,
+          "coef": -0.2897844821791186
+        },
+        {
+          "feature": "day_of_week",
+          "mean": 2.994375,
+          "scale": 2.0119874153122828,
+          "coef": 0.15874687878147115
+        }
+      ]
+    }
+  },
+  "final_model": {
+    "intercept": -6.744851218589306,
+    "categorical": [
+      {
+        "feature": "merchant_category",
+        "categories": [
+          "Crypto Exchange",
+          "Electronics",
+          "Fuel",
+          "Gaming",
+          "Gift Cards",
+          "Groceries",
+          "Healthcare",
+          "Online Retail",
+          "Restaurants",
+          "Streaming",
+          "Travel",
+          "Utilities"
+        ],
+        "coef": [
+          -0.6416396599296484,
+          -0.2680308566797185,
+          0.11616033124153231,
+          0.06277035944617579,
+          -0.16232272373365117,
+          -0.018295101390714635,
+          0.4432542612344845,
+          -0.36381784890156765,
+          -0.1432423652225459,
+          0.5480279615149353,
+          -0.3967113661748245,
+          0.5286660775103706
+        ]
+      },
+      {
+        "feature": "card_type",
+        "categories": [
+          "Amex",
+          "Discover",
+          "Mastercard",
+          "RuPay",
+          "Visa"
+        ],
+        "coef": [
+          0.14584831933877399,
+          0.3350616708212839,
+          -0.18782533202524962,
+          -0.41095176695717617,
+          -0.17731382226279452
+        ]
+      },
+      {
+        "feature": "auth_method",
+        "categories": [
+          "3D Secure",
+          "Biometric",
+          "No Authentication",
+          "OTP",
+          "PIN"
+        ],
+        "coef": [
+          0.01493368179325242,
+          -1.0187898995143283,
+          1.5640113354393315,
+          -0.09389924864579821,
+          -0.761436800157614
+        ]
+      },
+      {
+        "feature": "channel",
+        "categories": [
+          "ATM",
+          "Contactless",
+          "In-App",
+          "Online",
+          "POS"
+        ],
+        "coef": [
+          0.23888776606261058,
+          -0.1497648186994892,
+          -0.19756918318194927,
+          -0.06974454691120105,
+          -0.11699014835513286
+        ]
+      },
+      {
+        "feature": "device_type",
+        "categories": [
+          "ATM Machine",
+          "Android Phone",
+          "Mac",
+          "POS Terminal",
+          "Smart Watch",
+          "Tablet",
+          "Windows PC",
+          "iPhone"
+        ],
+        "coef": [
+          0.12775159859069546,
+          -0.04553932591967744,
+          0.03780407240200649,
+          -0.0947183366795521,
+          -0.061125438255032874,
+          -0.02433315088418194,
+          -0.2733484292581745,
+          0.038328078918756184
+        ]
+      }
+    ],
+    "boolean": [
+      {
+        "feature": "is_foreign_transaction",
+        "coef": 1.1906712164147106
+      },
+      {
+        "feature": "is_new_merchant",
+        "coef": 1.3922600924436583
+      },
+      {
+        "feature": "used_vpn",
+        "coef": 1.5421083039305374
+      },
+      {
+        "feature": "ip_country_mismatch",
+        "coef": 2.468109757569748
+      },
+      {
+        "feature": "billing_shipping_mismatch",
+        "coef": 2.4482232259005383
+      },
+      {
+        "feature": "is_ai_generated_scam_attempt",
+        "coef": 2.4077172722345184
+      }
+    ],
+    "log_scaled": [
+      {
+        "feature": "amount_usd",
+        "mean": 4.129419713538383,
+        "scale": 1.194451409285444,
+        "coef": 0.10926752052355074
+      },
+      {
+        "feature": "account_balance_usd",
+        "mean": 7.6044440579002615,
+        "scale": 1.0003891114659804,
+        "coef": 0.027291692918473245
+      }
+    ],
+    "scaled": [
+      {
+        "feature": "hours_since_last_txn",
+        "mean": 8.92698125,
+        "scale": 8.836361217274249,
+        "coef": -0.05985692778907374
+      },
+      {
+        "feature": "distance_from_home_km",
+        "mean": 22.120779374999998,
+        "scale": 22.109131833618537,
+        "coef": -0.06366920794800184
+      },
+      {
+        "feature": "card_age_months",
+        "mean": 46.9714375,
+        "scale": 6.765759135795018,
+        "coef": -0.16027343771021807
+      },
+      {
+        "feature": "customer_age",
+        "mean": 49.676125,
+        "scale": 18.414341692940724,
+        "coef": 0.1278948139422177
+      },
+      {
+        "feature": "velocity_score",
+        "mean": 19.8531875,
+        "scale": 12.378459610946901,
+        "coef": 0.8037344622648618
+      },
+      {
+        "feature": "merchant_risk_score",
+        "mean": 37.43764375,
+        "scale": 17.05196417786191,
+        "coef": 1.0465608836441107
+      },
+      {
+        "feature": "txn_count_last_24h",
+        "mean": 3.1895625,
+        "scale": 1.780064200694388,
+        "coef": -0.002667131594472785
+      },
+      {
+        "feature": "cvv_retry_count",
+        "mean": 0.1823125,
+        "scale": 0.42435203822268847,
+        "coef": 0.8234009558980688
+      },
+      {
+        "feature": "prior_disputes",
+        "mean": 0.280375,
+        "scale": 0.530579738941283,
+        "coef": 0.25413058703882685
+      },
+      {
+        "feature": "time_of_day_hour",
+        "mean": 11.543625,
+        "scale": 6.924997968185623,
+        "coef": -0.26502366002519917
+      },
+      {
+        "feature": "day_of_week",
+        "mean": 2.9956875,
+        "scale": 2.004131707833532,
+        "coef": 0.10013972123112433
+      }
+    ]
+  },
+  "sklearn_tolerance": 1e-12
+}

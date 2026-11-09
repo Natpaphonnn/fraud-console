@@ -1,4 +1,4 @@
-.PHONY: check lint test notebooks kaggle docs web-serve web-preview
+.PHONY: check lint test notebooks kaggle docs web-model web-serve web-preview
 
 check: lint test
 
@@ -6,9 +6,10 @@ lint:
 	uv run ruff check .
 	uv run ruff format --check .
 
-# pytest includes the website tests (and the Node simulator tests when node is installed)
+# pytest + generated-file freshness + Node tests of the in-browser model and simulator (needs node)
 test:
 	uv run pytest -q
+	node --test web/tests/
 	uv run python scripts/render_docs.py --check
 	uv run python scripts/build_web.py --check
 
@@ -27,6 +28,10 @@ kaggle:
 docs:
 	uv run python scripts/render_docs.py
 	uv run python scripts/build_web.py
+
+# re-export the logistic pipeline + scored dev sample for the website (dev rows only, deterministic)
+web-model:
+	uv run python scripts/export_web_model.py
 
 # local preview of the website (Ctrl+C to stop)
 web-serve:

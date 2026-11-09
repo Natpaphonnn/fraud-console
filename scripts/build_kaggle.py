@@ -27,7 +27,7 @@ DATASET_URL = "https://www.kaggle.com/datasets/uditjain13/credit-card-fraud-dete
 
 # Artifacts each notebook reads from earlier notebooks (Kaggle runs notebooks separately).
 _CV = "reports/cv"
-REPO_ONLY = {"web.py"}  # website builder; not needed on Kaggle
+REPO_ONLY = {"web.py", "export.py"}  # website only; not needed on Kaggle
 NEEDS: dict[str, list[str]] = {
     "04_modeling": [f"{_CV}/logreg.{x}" for x in ("folds.csv", "spec.json", "oof.csv.gz")]
     + [f"{_CV}/logreg_balanced.{x}" for x in ("folds.csv", "spec.json")],
