@@ -1,7 +1,15 @@
 // Fraud console. All numbers come from the page data (#site-data), built by
 // scripts/build_web.py from reports/. Scoring logic: model.js; cost logic: sim.js.
 import { contributions, prepareModel, score, streamRow } from "./model.js";
-import { PARAM_KEYS, bestIndex, costCurve, metricsAt, nearestIndex, validateParams } from "./sim.js";
+import {
+  PARAM_KEYS,
+  bestIndex,
+  costCurve,
+  metricsAt,
+  nearestIndex,
+  sampleOutcomes,
+  validateParams,
+} from "./sim.js";
 
 const DATA = JSON.parse(document.getElementById("site-data").textContent);
 const D = DATA.sim;
@@ -11,6 +19,8 @@ const FINAL = prepareModel(DATA.model.final_model);
 const N = S.id.length;
 const ROWS = Array.from({ length: N }, (_, i) => streamRow(S, i));
 const SCORES = ROWS.map((r) => score(FOLD[String(r.fold)], r)); // out-of-fold, as in CV
+const Y = ROWS.map((r) => r.y);
+const AMT = ROWS.map((r) => r.amount_usd);
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const VISIBLE = 14;
 const ROWS_PER_SEC = 2;
@@ -21,8 +31,10 @@ const $ = (id) => document.getElementById(id);
 const fmtPct = (x, nd = 1) => (Number.isFinite(x) ? `${(100 * x).toFixed(nd)}%` : "—");
 const fmtUsd = (x) => `${Math.round(x).toLocaleString("en-US")} USD`;
 const fmtNum = (x, nd = 1) => x.toLocaleString("en-US", { maximumFractionDigits: nd, minimumFractionDigits: nd });
-const fmtThr = (t) => (t === 0 ? "0" : t < 0.001 ? t.toPrecision(2) : t.toFixed(4));
-const fmtScore = (s) => (s < 0.0001 ? s.toExponential(1) : s.toFixed(4));
+// One format for every score and threshold on the page: 4 decimals, "<0.0001" below that.
+const fmt4 = (v) => (v === 0 ? "0" : v < 0.0001 ? "<0.0001" : v.toFixed(4));
+const fmtThr = fmt4;
+const fmtScore = fmt4;
 const fmtAmt = (x) => `$${x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtSigned = (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(2)}`;
 const logPos = (s) => Math.min(1, Math.max(0, (Math.log10(Math.max(s, X_MIN)) - Math.log10(X_MIN)) / -Math.log10(X_MIN)));
@@ -62,13 +74,14 @@ function setIndex(i) {
 
 function outcome(i) {
   const step = SCORES[i] >= thr();
-  if (ROWS[i].y === 1) return step ? ["tp", "●", "fraud caught"] : ["fn", "✕", "fraud missed"];
+  if (ROWS[i].y === 1) return step ? ["tp", "●", "fraud caught"] : ["fn", "×", "fraud missed"];
   return step ? ["fp", "○", "false alarm"] : ["tn", "·", "legit ok"];
 }
 
 function sbar(s, t) {
   const wrap = h("span", "sbar");
   const track = h("span", "sbar-track");
+  track.title = `Score ${fmtScore(s)} on a log scale from ${X_MIN} to 1; tick = threshold ${fmtThr(t)}`;
   const fill = h("span", `sbar-fill${s >= t ? " step" : ""}`);
   fill.style.width = `${(100 * logPos(s)).toFixed(1)}%`;
   const mark = h("span", "sbar-thr");
@@ -116,19 +129,23 @@ function renderStream(fresh) {
 
 function renderCounters() {
   const t = thr();
-  let tp = 0, fp = 0, fn = 0, tn = 0;
-  for (let i = 0; i < state.played; i++) {
-    const step = SCORES[i] >= t;
-    if (ROWS[i].y === 1) step ? tp++ : fn++;
-    else step ? fp++ : tn++;
-  }
-  $("c-tp").textContent = tp;
-  $("c-fn").textContent = fn;
-  $("c-fp").textContent = fp;
-  $("c-tn").textContent = tn.toLocaleString("en-US");
-  $("c-recall").textContent = tp + fn ? `${fmtPct(tp / (tp + fn), 0)}` : "—";
-  $("c-precision").textContent = tp + fp ? `${fmtPct(tp / (tp + fp), 0)}` : "—";
-  $("c-played").textContent = `${state.played.toLocaleString("en-US")} / ${N.toLocaleString("en-US")}`;
+  const full = sampleOutcomes(SCORES, Y, AMT, t, state.params);
+  $("f-recall").textContent = fmtPct(full.recall);
+  $("f-precision").textContent = fmtPct(full.precision);
+  $("f-alert").textContent = fmtPct(full.alertRate, 2);
+  $("f-cost").textContent = fmtUsd(full.costPer1000);
+  $("f-counts").textContent =
+    `${full.tp} caught · ${full.fn} missed · ${full.fp.toLocaleString("en-US")} false alarms · ` +
+    `${full.tn.toLocaleString("en-US")} approved ok`;
+  const k = state.played;
+  const so = sampleOutcomes(SCORES.slice(0, k), Y.slice(0, k), AMT.slice(0, k), t, state.params);
+  $("c-tp").textContent = so.tp;
+  $("c-fn").textContent = so.fn;
+  $("c-fp").textContent = so.fp;
+  $("c-tn").textContent = so.tn.toLocaleString("en-US");
+  $("c-recall").textContent = fmtPct(so.recall, 0);
+  $("c-precision").textContent = fmtPct(so.precision, 0);
+  $("c-played").textContent = `${k.toLocaleString("en-US")} / ${N.toLocaleString("en-US")} rows`;
 }
 
 function renderPlayState() {
@@ -474,6 +491,7 @@ function onCostInput() {
   state.params = p;
   recomputeCurve();
   renderSim();
+  renderCounters();
 }
 
 function resetCosts() {

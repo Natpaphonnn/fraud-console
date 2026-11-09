@@ -90,3 +90,42 @@ export function nearestIndex(d, t) {
   }
   return best;
 }
+
+// Outcomes of a set of scored rows at threshold t (two-tier policy, same cost formula).
+// Used for the live stream: the full 2,000-row sample and the rows played so far.
+export function sampleOutcomes(scores, y, amount, t, p) {
+  let tp = 0;
+  let fp = 0;
+  let fn = 0;
+  let tn = 0;
+  let fnUsd = 0;
+  for (let i = 0; i < scores.length; i++) {
+    const step = scores[i] >= t;
+    if (y[i] === 1) {
+      if (step) tp++;
+      else {
+        fn++;
+        fnUsd += amount[i];
+      }
+    } else if (step) fp++;
+    else tn++;
+  }
+  const n = scores.length;
+  const flagged = tp + fp;
+  const cost =
+    flagged * p.review_cost_per_alert +
+    fp * p.fp_friction_cost +
+    p.fn_loss_fraction * fnUsd +
+    fn * p.fn_fixed_cost;
+  return {
+    n,
+    tp,
+    fp,
+    fn,
+    tn,
+    recall: tp + fn ? tp / (tp + fn) : NaN,
+    precision: flagged ? tp / flagged : NaN,
+    alertRate: n ? flagged / n : NaN,
+    costPer1000: n ? (cost / n) * 1000 : NaN,
+  };
+}

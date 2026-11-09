@@ -66,34 +66,56 @@
         </div>
         <p class="panel-meta">2,000 dev transactions (34 fraud), random order · each scored
           out-of-fold by the CV model that did not train on it · <span id="s-progress">0 played</span></p>
+        <p class="legend-line" id="s-legend"><span class="lg-item"><span class="o o--tp">●</span>fraud caught</span>
+          <span class="lg-item"><span class="o o--fn">×</span>fraud missed</span>
+          <span class="lg-item"><span class="o o--fp">○</span>false alarm</span>
+          <span class="lg-item"><span class="o o--tn">·</span>legit approved</span>
+          <span class="lg-item lg-bar"><span class="lg-swatch" aria-hidden="true"></span>score bar: log scale, 0.0001 → 1; tick = threshold</span></p>
         <div class="srow srow--head" aria-hidden="true">
-          <span>txn</span><span class="r">amount</span><span class="c-merch">merchant</span><span class="c-chan">channel</span><span>score</span><span>decision</span><span class="c-out">truth</span>
+          <span>txn</span><span class="r">amount</span><span class="c-merch">merchant</span><span class="c-chan">channel</span><span title="Bar on a log scale from 0.0001 to 1; the tick marks the threshold">score <span class="c-scale">· log scale</span><span class="c-scale-s">(log)</span></span><span>decision</span><span class="c-out">truth</span>
         </div>
         <ol class="stream-rows" id="s-rows" aria-label="Most recent transactions, newest first"></ol>
         <p class="stream-hint" id="s-hint" hidden></p>
-        <p class="legend-line" aria-hidden="true"><span class="o o--tp">●</span>fraud caught <span class="o o--fn">✕</span>fraud missed <span class="o o--fp">○</span>false alarm <span class="o o--tn">·</span>legit approved · select a row to inspect it</p>
+        <p class="fine stream-foot">Select a row to inspect it.</p>
       </div>
 
       <div class="side">
         <div class="panel counters" aria-labelledby="ctr-title">
           <div class="panel-head">
-            <h2 class="panel-title" id="ctr-title">Outcomes so far</h2>
-            <span class="panel-meta mono" id="c-played">0 / 2,000</span>
+            <h2 class="panel-title" id="ctr-title">Outcomes</h2>
           </div>
           <label class="thr-mini" for="thr-mini">
             <span class="k">threshold</span><output class="v" id="thr-mini-out" for="thr-mini">0.0695</output>
           </label>
           <input type="range" id="thr-mini" min="0" max="1" step="1" value="0" aria-label="Step-up threshold (shared with the simulator)" disabled>
-          <dl class="ctr-grid">
-            <div><dt>caught</dt><dd id="c-tp">0</dd></div>
-            <div><dt>missed</dt><dd id="c-fn">0</dd></div>
-            <div><dt>false alarms</dt><dd id="c-fp">0</dd></div>
-            <div><dt>approved ok</dt><dd id="c-tn">0</dd></div>
-            <div><dt>recall</dt><dd id="c-recall">—</dd></div>
-            <div><dt>precision</dt><dd id="c-precision">—</dd></div>
-          </dl>
-          <p class="fine">Counts on the rows played so far, at the current threshold (moving it re-labels them). Too
-            few rows for stable rates; full-sample figures are in the simulator below.</p>
+
+          <div class="ctr-block" aria-labelledby="full-title">
+            <h3 class="ctr-title" id="full-title"><span class="scope scope--full">full sample</span>
+              <span class="ctr-meta">all 2,000 stream rows · 34 fraud</span></h3>
+            <dl class="ctr-grid ctr-grid--2">
+              <div><dt>recall</dt><dd id="f-recall">—</dd></div>
+              <div><dt>precision</dt><dd id="f-precision">—</dd></div>
+              <div><dt>stepped up</dt><dd id="f-alert">—</dd></div>
+              <div><dt>cost / 1,000 txn*</dt><dd id="f-cost">—</dd></div>
+            </dl>
+            <p class="fine" id="f-counts"></p>
+          </div>
+
+          <div class="ctr-block" aria-labelledby="played-title">
+            <h3 class="ctr-title" id="played-title"><span class="scope">played so far</span>
+              <span class="ctr-meta" id="c-played">0 / 2,000 rows</span></h3>
+            <dl class="ctr-grid">
+              <div><dt>caught</dt><dd id="c-tp">0</dd></div>
+              <div><dt>missed</dt><dd id="c-fn">0</dd></div>
+              <div><dt>false alarms</dt><dd id="c-fp">0</dd></div>
+              <div><dt>approved ok</dt><dd id="c-tn">0</dd></div>
+              <div><dt>recall</dt><dd id="c-recall">—</dd></div>
+              <div><dt>precision</dt><dd id="c-precision">—</dd></div>
+            </dl>
+          </div>
+          <p class="fine">Both use the same out-of-fold scores and the current threshold; moving it re-labels every
+            row. Rates on the rows played so far are noisy until many rows have played. *Illustrative assumed costs (not bank data), as set in the
+            simulator below.</p>
         </div>
 
         <div class="panel inspector" id="inspector" aria-labelledby="insp-title">

@@ -115,14 +115,24 @@ def main() -> int:
             check(page.text_content("#insp-mode") == "pinned", "click pins the inspector")
             n_bars = page.locator("#insp-body .contrib li").count()
             check(n_bars >= 5, f"inspector shows per-feature contributions ({n_bars} lines)")
+            check(
+                page.text_content("#full-title").startswith("full sample")
+                and page.text_content("#played-title").startswith("played so far"),
+                "outcomes label 'full sample' and 'played so far' separately",
+            )
+            check(page.text_content("#f-recall") not in ("", "—"), "full-sample recall shown")
+            text = page.text_content("main")
+            check("e-" not in page.text_content("#s-rows"), "stream scores use no e-notation")
+            check("<0.0001" in text, "scores below 0.0001 show as <0.0001")
+            check(page.is_visible(".srow--head .c-scale"), "score column header says 'log scale'")
             page.screenshot(path=OUT / "desktop.png", full_page=True)
             page.screenshot(path=OUT / "desktop_hero.png")
 
             field = page.locator('#pg-fields [data-f="merchant_risk_score"]')
             field.fill("0")
-            low = float(page.text_content("#pg-score"))
+            low = float(page.text_content("#pg-score").lstrip("<"))
             field.fill("100")
-            high = float(page.text_content("#pg-score"))
+            high = float(page.text_content("#pg-score").lstrip("<"))
             check(high > low, f"try-it score reacts to merchant_risk_score ({low} -> {high})")
 
             page.click("#btn-best")
@@ -170,6 +180,15 @@ def main() -> int:
                 reduced_motion="reduce",
             )
             step_until_catch(page)
+            check(page.is_visible(".srow--head .c-out"), "mobile: truth column has a header")
+            check(page.is_visible("#s-legend"), "mobile: legend for the truth symbols is visible")
+            check(page.is_visible(".srow--head .c-scale-s"), "mobile: score header says '(log)'")
+            clipped = page.evaluate(
+                """[...document.querySelectorAll('#s-legend .lg-item, #s-rows .sbar-val')]
+                   .filter(e => e.getBoundingClientRect().right > innerWidth
+                             || e.scrollWidth > e.clientWidth + 1).length"""
+            )
+            check(clipped == 0, f"mobile: legend and scores fit ({clipped} clipped)")
             page.screenshot(path=OUT / "mobile.png", full_page=True)
             page.screenshot(path=OUT / "mobile_hero.png")
             check(not errors, f"mobile: no console errors {errors}")

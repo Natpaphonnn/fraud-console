@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 
 import { contributions, logit, prepareModel, score, streamRow } from "../src/model.js";
+import { sampleOutcomes } from "../src/sim.js";
 
 const TOL = 1e-9;
 const repo = fileURLToPath(new URL("../../", import.meta.url));
@@ -69,4 +70,25 @@ test("unseen category contributes 0 (sklearn handle_unknown='ignore')", () => {
   const r = { ...streamRow(S, 0), channel: "Carrier pigeon" };
   const c = Object.fromEntries(contributions(final, r));
   assert.equal(c.channel, 0);
+});
+
+test("full-sample outcomes match an independent count from the Python scores", () => {
+  const folds = Object.fromEntries(Object.entries(DATA.model.fold_models).map(([k, m]) => [k, prepareModel(m)]));
+  const rows = PY.map((_, i) => streamRow(S, i));
+  const scores = rows.map((r) => score(folds[String(r.fold)], r));
+  const p = DATA.sim.default_params;
+  const t = DATA.sim.chosen_threshold;
+  const got = sampleOutcomes(scores, rows.map((r) => r.y), rows.map((r) => r.amount_usd), t, p);
+  let tp = 0, fp = 0, fn = 0, fnUsd = 0;
+  for (const r of PY) {
+    const step = Number(r.score_oof) >= t;
+    const fraud = r.is_fraud === "1";
+    if (fraud && step) tp++;
+    else if (fraud) { fn++; fnUsd += Number(r.amount_usd); }
+    else if (step) fp++;
+  }
+  assert.deepEqual([got.tp, got.fp, got.fn, got.n], [tp, fp, fn, PY.length]);
+  const cost = (tp + fp) * p.review_cost_per_alert + fp * p.fp_friction_cost + p.fn_loss_fraction * fnUsd + fn * p.fn_fixed_cost;
+  assert.ok(Math.abs(got.costPer1000 - (cost / PY.length) * 1000) < 1e-9);
+  assert.equal(got.recall, tp / (tp + fn));
 });
