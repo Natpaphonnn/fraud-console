@@ -1,0 +1,9 @@
+Fraud risk landscape
+
+P(fraud) from the logistic model as merchant risk and velocity vary.
+Fixed at a typical dev transaction: amount 57.58 USD, age 50, Online Retail, Online, 3D Secure,
+other inputs at dev medians; red flags on: is_new_merchant, ip_country_mismatch, is_foreign_transaction (others off).
+Amber contour: the step-up threshold, P = 0.0695. P on this slice: 0.002 to 0.990.
+
+Data: Credit Card Fraud Detection 2026 (Udit Jain, CC0), unspecified provenance.
+https://github.com/Natpaphonnn/fraud-console

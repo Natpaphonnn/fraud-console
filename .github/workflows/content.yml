@@ -1,5 +1,6 @@
-# Render the content figures (stills at 1080x1080 and 1920x1080, ~8 s rotating clips as mp4 + gif)
-# on a GitHub runner, never on the shared laptop. Run by hand: Actions -> Content figures -> Run workflow.
+# Render the content figures on GitHub runners (never on the shared laptop): stills (full + social,
+# 1080x1080 and 1920x1080), caption .txt files, ~7 s looping clips (mp4 1080x1080 and 1080x1920,
+# gif <= 8 MB). Run by hand: Actions -> Content figures -> Run workflow.
 name: Content figures
 
 on:
@@ -11,7 +12,11 @@ permissions:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        figure: [landscape, cost_valley, galaxy]
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.3
@@ -26,16 +31,17 @@ jobs:
           ffmpeg -version | head -n 1
       - name: Install (locked)
         run: uv sync --locked
-      - name: Render stills and clips
-        run: uv run python scripts/content_figures.py --full
+      - name: Render ${{ matrix.figure }}
+        run: uv run python scripts/content_figures.py --full --only ${{ matrix.figure }}
       - name: List outputs
         run: ls -la reports/content
       - uses: actions/upload-artifact@v7
         with:
-          name: content-figures
+          name: content-${{ matrix.figure }}
           path: |
             reports/content/*.png
             reports/content/*.mp4
             reports/content/*.gif
+            reports/content/*.txt
           if-no-files-found: error
           retention-days: 30

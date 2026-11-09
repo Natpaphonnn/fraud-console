@@ -29,12 +29,31 @@ def test_cost_valley_matches_the_threshold_report():
     assert cost == pytest.approx(thr["cost_per_1000_txn"], abs=0.05)
 
 
-def test_landscape_scores_come_from_the_model(dev):
-    d = cf.landscape_data(dev, n=12)
-    assert np.allclose(d["Z"], np.log10(d["P"]))
-    assert 0 < d["P"].min() < d["P"].max() < 1
-    # more merchant risk and more velocity never lower the score (both coefficients positive)
-    assert (np.diff(d["P"], axis=0) >= 0).all() and (np.diff(d["P"], axis=1) >= 0).all()
+def test_landscape_shows_both_plateaus_and_a_flat_logodds_plane(dev):
+    d = cf.landscape_data(dev, n=15)
+    assert d["P"].min() < 0.01 and d["P"].max() > 0.95  # low plateau, high plateau, cliff between
+    assert d["P"].min() < d["thr"] < d["P"].max()
+    L = d["L"]  # a logistic model is exactly a plane in log-odds
+    assert np.allclose(np.diff(L, 2, axis=0), 0, atol=1e-9) and np.allclose(
+        np.diff(L, 2, axis=1), 0, atol=1e-9
+    )
+    fraud = dev[dev[C.TARGET] == 1][C.BOOLEAN_COLS].mean().sort_values(ascending=False)
+    assert d["flags_on"] == list(fraud.index[: cf.LANDSCAPE_FLAGS])
+
+
+def test_captions_credit_the_data_and_label_costs(dev):
+    data = {
+        "landscape": cf.landscape_data(dev, n=10),
+        "cost": cf.cost_data(),
+        "galaxy": cf.galaxy_data(dev),
+    }
+    for name, (_, key, *_rest) in cf.FIGURES.items():
+        t = cf.texts(name, data[key])
+        assert "Udit Jain" in t["credit"] and "CC0" in t["credit"]
+    assert (
+        "Illustrative assumed costs (not bank data)"
+        in cf.texts("cost_valley", data["cost"])["credit"]
+    )
 
 
 def test_galaxy_uses_every_dev_row_and_no_holdout(dev):

@@ -1,0 +1,8 @@
+Transaction galaxy
+
+16,000 dev transactions. Each point is one transaction's 24 per-feature
+contributions to the logistic model's log-odds, projected to 3-D with PCA
+(52% of the variance). Amber: fraud (271); blue: legitimate. Axes are unitless.
+
+Data: Credit Card Fraud Detection 2026 (Udit Jain, CC0), unspecified provenance.
+https://github.com/Natpaphonnn/fraud-console

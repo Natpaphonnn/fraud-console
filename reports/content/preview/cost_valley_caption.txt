@@ -1,0 +1,10 @@
+Cost valley
+
+Expected cost per 1,000 transactions by step-up threshold and by how much
+of a missed fraud's amount is lost (×0.25 to ×2 of the project's assumption).
+Dev out-of-fold counts, mean of 3 CV repeats; thresholds 0.003 to 1. Glowing line: cheapest threshold per multiplier.
+Dot: the project's setting (×1), threshold 0.0695, 1,664 USD per 1,000.
+
+Illustrative assumed costs (not bank data): step-up 5 USD, good-customer friction 10 USD,
+missed fraud = amount + 15 USD. Data: Credit Card Fraud Detection 2026 (Udit Jain, CC0), unspecified provenance.
+https://github.com/Natpaphonnn/fraud-console

@@ -1,0 +1,8 @@
+Log-odds view: a flat plane
+
+The same slice as the fraud risk landscape, vertical axis in log-odds.
+A logistic model is exactly a plane here: each input adds a fixed amount.
+That additive shape is what beat LightGBM on this dataset.
+
+Data: Credit Card Fraud Detection 2026 (Udit Jain, CC0), unspecified provenance.
+https://github.com/Natpaphonnn/fraud-console
