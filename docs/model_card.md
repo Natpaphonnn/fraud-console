@@ -71,6 +71,23 @@ Exact linear SHAP values (coefficient × centred input). The top three features,
 - Best boosting (`lgbm_tuned`) minus logistic: -0.048 [-0.084, -0.012] → logistic kept.
 - `is_ai_generated_scam_attempt` (with minus without): +0.028 [+0.011, +0.045] → kept.
 - Calibration: neither sigmoid nor isotonic calibration improved the Brier score.
+- P5 check (pre-registered A6), each minus the final logistic model: splines on numeric inputs (GAM-like) -0.016 [-0.041, +0.009] → not distinguishable; pairwise red-flag interactions +0.002 [-0.021, +0.024] → not distinguishable. Final model unchanged.
+
+## Fairness by age (pre-registered, P5)
+
+Dev out-of-fold scores (CV repeat r0) at the project threshold 0.0695, four age bands, stratified bootstrap 95% intervals (20,000 resamples). The holdout was not used. The rule was fixed before the results (`notes/00_preregistration.md`, A5): a gap between a band and all other rows counts as real only if its Bonferroni-adjusted interval (16 comparisons) excludes 0.
+
+| Age band | Rows | Fraud | Step-up rate | Recall | Precision | False-positive rate |
+|---|---|---|---|---|---|---|
+| 18–29 | 3,000 | 46 | 4.3% [3.7, 5.0] | 71.7% [58.7, 84.8] | 25.4% [20.6, 30.7] | 3.3% [2.7, 3.9] |
+| 30–44 | 3,652 | 54 | 4.4% [3.8, 5.1] | 63.0% [50.0, 75.9] | 21.0% [16.7, 25.7] | 3.6% [3.0, 4.2] |
+| 45–59 | 3,808 | 60 | 5.2% [4.6, 5.9] | 71.7% [60.0, 83.3] | 21.6% [18.0, 25.6] | 4.2% [3.5, 4.8] |
+| 60+ | 5,540 | 111 | 5.6% [5.1, 6.2] | 69.4% [60.4, 77.5] | 24.8% [21.7, 28.2] | 4.3% [3.8, 4.8] |
+
+- **Gaps passing the rule: 0 of 16.** All are **not distinguishable**. This is **not** evidence that the model is fair: bands have only 46–111 fraud cases, and the widest adjusted interval spans 42.9 pp (18–29, recall).
+- At the unadjusted 95% level, 4 gaps exclude 0: 18–29 step-up rate -0.83 pp [-1.57, -0.06]; 18–29 false-positive rate -0.76 pp [-1.49, -0.02]; 30–44 step-up rate -0.74 pp [-1.46, -0.01]; 60+ step-up rate +0.90 pp [+0.22, +1.57]. Where they point the same way, older bands sit above the rest and younger bands below. This is a lead to re-check on more data, not a finding.
+- **Without `customer_age`:** PR-AUC -0.002 [-0.008, +0.005] (not distinguishable). Step-up rate changes for 18–29 (4.3% → 5.1%) and for 60+ (5.6% → 5.0%) (descriptive). Age ranks 14 of 24 features by mean |SHAP| (2.0% of the total). Dropping age is an option where using it is not acceptable.
+- Age is the only person attribute in the data. No causal or legal claim is made; a real deployment needs its own fairness review on real data.
 
 ## Limitations and risks
 
@@ -79,7 +96,7 @@ Exact linear SHAP values (coefficient × centred input). The top three features,
 - **No real timestamps.** No out-of-time validation; temporal drift is untested.
 - **Small positive class.** 339 fraud cases in total, 68 in the holdout; holdout cost intervals are wide.
 - **Assumed costs.** All cost numbers are illustrative; real costs differ by institution and change the threshold.
-- **Fairness not assessed.** `customer_age` is an input; no protected-attribute analysis was done. Any real use would need one.
+- **Fairness only partly assessed.** Age bands only (see above): gaps were not distinguishable with this data, which does not establish fairness. No other person attributes exist to check.
 - **Probabilities.** Sigmoid and isotonic calibration did not improve the Brier score on CV (Brier 0.013); calibration under drift was not checked.
 
 ## Reproduce

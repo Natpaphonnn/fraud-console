@@ -368,6 +368,8 @@
           synthetic).</li>
         <li><strong>Class weights and undersampling</strong> were not distinguishable from doing nothing.</li>
         <li><strong>Calibration:</strong> {{calibration_verdict}}.</li>
+        <li><strong>Splines and red-flag interactions</strong> (checked later, pre-registered) were not
+          distinguishable from the plain logistic model: {{gam_diff}} {{gam_ci}} and {{pairs_diff}} {{pairs_ci}}.</li>
       </ul>
       <div class="note">
         <h3>A third tier (&ldquo;decline&rdquo;) did not clearly pay off</h3>
@@ -380,8 +382,30 @@
     </div>
   </details>
 
+  <details class="module" id="r-fairness">
+    <summary><span class="m-idx">04.6</span><span class="m-title">Fairness by age</span><span class="m-sub">{{fair_n_real}} of {{fair_n_comparisons}} gaps pass the pre-registered rule · not a fairness claim</span></summary>
+    <div class="prose">
+      <p>Step-up rate, recall, precision and false-positive rate per age band at the project threshold
+        {{fair_threshold}}, on dev out-of-fold scores; the holdout was not used. The rule was written before the
+        results: a gap between a band and everyone else counts only if its Bonferroni-adjusted interval
+        ({{fair_n_comparisons}} comparisons) excludes zero.</p>
+      {{fairness_html}}
+      <ul>
+        <li><strong>{{fair_headline}}</strong> ({{fair_n_real}} of {{fair_n_comparisons}}); the others are
+          <strong>not distinguishable</strong>. That is not evidence of fairness &mdash; bands hold only
+          {{fair_fraud_min}}&ndash;{{fair_fraud_max}} fraud cases and the widest adjusted interval spans
+          {{fair_widest}}.</li>
+        <li>At the unadjusted 95% level {{fair_n_95}} gaps exclude zero ({{fair_hint}}); {{fair_direction}}. A lead to re-check with more data, not a finding.</li>
+        <li><strong>Without <code>customer_age</code></strong> PR-AUC changes by {{noage_diff}} {{noage_ci}}
+          ({{noage_verdict}}); step-up rate 18&ndash;29 {{noage_young}}, 60+ {{noage_old}}. Age ranks
+          {{age_shap_rank}} features by mean |SHAP|.</li>
+        <li>Age is the only person attribute in this data; no causal or legal claim is made.</li>
+      </ul>
+    </div>
+  </details>
+
   <details class="module" id="r-method">
-    <summary><span class="m-idx">04.6</span><span class="m-title">How the evaluation stays honest</span><span class="m-sub">locked holdout · pre-registration · tested</span></summary>
+    <summary><span class="m-idx">04.7</span><span class="m-title">How the evaluation stays honest</span><span class="m-sub">locked holdout · pre-registration · tested</span></summary>
     <div class="prose">
       <ul>
         <li>Holdout locked before any label-based analysis and scored once; a lock file refuses any other pipeline or

@@ -1,0 +1,283 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#   kernelspec:
+#     display_name: Python 3
+#     language: python
+#     name: python3
+# ---
+
+# %% [markdown]
+# # Cost-aware fraud detection in 10 minutes: why logistic regression won, why SMOTE hurt, and where to put the threshold
+#
+# A card issuer scores every transaction. High scores get **step-up** (extra authentication or review), the
+# rest are approved. Two mistakes cost money in different ways: stepping up a good customer (friction) and
+# approving a fraud (the amount is lost). This notebook walks through the main lessons of a larger,
+# pre-registered project on the same data. It re-runs a **light version** live (5 folds, one repeat, about
+# a minute on CPU) and quotes the full results (15 folds, bootstrap intervals, one-time holdout) from the
+# project.
+#
+# - Code, notebooks, model card: **{{url_github}}**
+# - Live console (the model scoring transactions in your browser): **{{url_website}}**
+#
+# **Data:** *Credit Card Fraud Detection 2026* by Udit Jain (CC0). It is a public dataset of **unspecified
+# provenance**: nothing here is a claim about real banks' customers.
+
+# %%
+import os
+import time
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from imblearn.over_sampling import SMOTENC
+from imblearn.pipeline import Pipeline
+from lightgbm import LGBMClassifier
+from sklearn.compose import ColumnTransformer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import average_precision_score
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
+
+T_START = time.time()
+SEED = 42
+INPUT = Path(os.environ.get("KAGGLE_INPUT_DIR", "/kaggle/input"))
+CSV = next(INPUT.rglob("credit_card_fraud_2026.csv"))
+df = pd.read_csv(CSV)
+
+CAT = {{cat_cols}}
+BOOL = {{bool_cols}}
+NUM = {{num_cols}}
+LOG = {{log_cols}}
+y_all = df["is_fraud"].to_numpy()
+plt.rcParams.update({"figure.dpi": 110, "axes.spines.top": False, "axes.spines.right": False})
+print(f"{len(df):,} transactions, {y_all.sum()} fraud ({y_all.mean():.2%}), {len(CAT + BOOL + NUM)} features")
+
+# %% [markdown]
+# ## 1. Lock a holdout first, then never look at it
+#
+# The project set aside a stratified 20% holdout **before any analysis** and scored it exactly once at the
+# end. This notebook rebuilds the same split (same seed) and uses only the other 80% ("dev"), with the same
+# five folds as the project's first CV repeat.
+
+# %%
+dev_ids, _ = train_test_split(df["transaction_id"].to_numpy(), test_size=0.2, stratify=y_all, random_state=SEED)
+dev = df[df["transaction_id"].isin(dev_ids)].reset_index(drop=True)
+y = dev["is_fraud"].to_numpy()
+X = dev[CAT + BOOL + NUM].copy()
+X[BOOL] = X[BOOL].astype(int)
+fold = np.empty(len(dev), dtype=int)
+for k, (_, va) in enumerate(StratifiedKFold(5, shuffle=True, random_state=SEED).split(X, y)):
+    fold[va] = k
+print(f"dev: {len(dev):,} rows, {y.sum()} fraud; holdout kept aside: {len(df) - len(dev):,} rows")
+
+# %% [markdown]
+# ## 2. Why accuracy is the wrong yardstick
+#
+# With so few fraud cases, a "model" that approves everything is almost always right, and useless.
+
+# %%
+always_legit_acc = 1 - y.mean()
+print(f"approve everything: accuracy {always_legit_acc:.2%}, fraud caught 0%")
+print(f"a random score has PR-AUC (average precision) = fraud rate = {y.mean():.4f}")
+
+# %% [markdown]
+# So we rank by **PR-AUC** (how well fraud floats to the top) and choose the threshold by **expected cost**,
+# not by accuracy.
+#
+# ## 3. Logistic regression vs LightGBM
+#
+# Both get the same features. Logistic regression gets one-hot categories, `log1p` on the two heavy-tailed
+# amounts and standardised numerics. LightGBM uses the project's tuned settings (small trees, many rounds).
+
+# %%
+def prep(kind):
+    onehot = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+    if kind == "linear":
+        plain = [c for c in NUM if c not in LOG]
+        log = make_pipeline(FunctionTransformer(np.log1p, feature_names_out="one-to-one"), StandardScaler())
+        parts = [("cat", onehot, CAT), ("bool", "passthrough", BOOL), ("log", log, LOG), ("num", StandardScaler(), plain)]
+    else:
+        parts = [("cat", onehot, CAT), ("bool", "passthrough", BOOL), ("num", "passthrough", NUM)]
+    return ColumnTransformer(parts)
+
+
+LGBM_DEFAULT = {{lgbm_default}}
+LGBM_TUNED = {**LGBM_DEFAULT, **{{lgbm_tuned}}}
+lgbm_kw = {"random_state": SEED, "n_jobs": 4, "deterministic": True, "force_row_wise": True, "verbose": -1}
+
+MODELS = {
+    "logistic": lambda: Pipeline([("prep", prep("linear")), ("model", LogisticRegression(C=1.0, max_iter=2000, random_state=SEED))]),
+    "LightGBM (tuned)": lambda: Pipeline([("prep", prep("tree")), ("model", LGBMClassifier(**LGBM_TUNED, **lgbm_kw))]),
+}
+
+
+def cross_validate(make):
+    oof, ap = np.zeros(len(y)), []
+    for k in range(5):
+        tr, va = fold != k, fold == k
+        p = make().fit(X[tr], y[tr]).predict_proba(X[va])[:, 1]
+        oof[va] = p
+        ap.append(average_precision_score(y[va], p))
+    return np.array(ap), oof
+
+
+def paired(a, b):
+    """Mean of b - a over folds with a corrected resampled t interval (Nadeau & Bengio)."""
+    from scipy import stats
+
+    d = b - a
+    se = np.sqrt((1 / len(d) + 0.25) * d.var(ddof=1))  # 0.25 = test/train size ratio for 5 folds
+    t = stats.t.ppf(0.975, len(d) - 1)
+    return d.mean(), d.mean() - t * se, d.mean() + t * se
+
+
+res = {name: cross_validate(make) for name, make in MODELS.items()}
+for name, (ap, _) in res.items():
+    print(f"{name:18s} PR-AUC per fold {np.round(ap, 3)}  mean {ap.mean():.3f}")
+m, lo, hi = paired(res["logistic"][0], res["LightGBM (tuned)"][0])
+print(f"LightGBM minus logistic: {m:+.3f} [{lo:+.3f}, {hi:+.3f}] (this light run, 5 folds)")
+
+# %% [markdown]
+# The logistic fold scores above should match the project's first CV repeat (last digits can differ with
+# library versions). Five folds are noisier than the project's fifteen, so this light interval is wider.
+#
+# **Project result (pre-registered, 15 folds):** best boosting pipeline minus logistic =
+# **{{boost_vs_lr_diff}} {{boost_vs_lr_ci}}**, so logistic regression was kept. Why would a linear model win?
+# On this data the odds of fraud **multiply** with each extra red flag ({{flag_odds_multipliers}} going from
+# 0→1, 1→2, 2→3 and 3→4+ flags). That is the additive log-odds shape a logistic model represents directly.
+# Tuning even pushed LightGBM towards tiny trees. Splines and red-flag interactions did not help either
+# ({{gam_diff}} {{gam_ci}} and {{pairs_diff}} {{pairs_ci}} vs logistic). This is a statement about this
+# dataset, not about fraud models in general.
+#
+# ## 4. Why SMOTE made things worse
+#
+# SMOTE creates synthetic fraud by interpolating between real fraud cases. Most fraud signals here are
+# **categorical or boolean red flags**, and SMOTENC fills those by majority vote of the neighbours. Let's
+# look at what the synthetic fraud looks like.
+
+# %%
+SMOTE = {"sampling_strategy": {{smote_ratio}}, "k_neighbors": {{smote_k}}, "random_state": SEED}
+tr = fold != 0
+sm = SMOTENC(categorical_features=CAT + BOOL, **SMOTE)
+Xr, yr = sm.fit_resample(X[tr], y[tr])
+synthetic = Xr.iloc[tr.sum():][yr[tr.sum():] == 1]
+real = X[tr][y[tr] == 1]
+flags = pd.DataFrame({"real fraud": real[BOOL].mean(), "synthetic fraud": synthetic[BOOL].mean()})
+flags["synthetic / real"] = flags["synthetic fraud"] / flags["real fraud"]
+print(f"{len(synthetic):,} synthetic fraud rows from {len(real)} real ones (training folds of fold 0)")
+(100 * flags[["real fraud", "synthetic fraud"]]).round(1).assign(**{"synthetic / real": flags["synthetic / real"].round(2)})
+
+# %%
+smote_model = lambda: Pipeline(  # noqa: E731
+    [("smote", SMOTENC(categorical_features=CAT + BOOL, **SMOTE)), ("prep", prep("tree")), ("model", LGBMClassifier(**LGBM_DEFAULT, **lgbm_kw))]
+)
+plain_model = lambda: Pipeline([("prep", prep("tree")), ("model", LGBMClassifier(**LGBM_DEFAULT, **lgbm_kw))])  # noqa: E731
+ap_plain, _ = cross_validate(plain_model)
+ap_smote, _ = cross_validate(smote_model)
+m, lo, hi = paired(ap_plain, ap_smote)
+print(f"LightGBM PR-AUC: no resampling {ap_plain.mean():.3f}, with SMOTENC {ap_smote.mean():.3f}")
+print(f"SMOTENC minus none: {m:+.3f} [{lo:+.3f}, {hi:+.3f}] (this light run)")
+
+# %% [markdown]
+# Synthetic "fraud" carries the red flags far less often than real fraud, so the model learns a blurred
+# picture. **Project result (15 folds):** SMOTENC minus no resampling = **{{smote_diff}} {{smote_ci}}**.
+# Class weights ({{cw_diff}}) and undersampling ({{us_diff}}) were not distinguishable from doing nothing.
+#
+# ## 5. Put the threshold where expected cost is lowest
+#
+# **{{cost_label}}:** a step-up costs {{cost_review}} USD, stepping up a good customer adds
+# {{cost_friction}} USD of friction, a missed fraud costs its amount plus {{cost_fn_fixed}} USD.
+# Change them and the best threshold moves.
+
+# %%
+COST = {"review": {{cost_review}}, "friction": {{cost_friction}}, "fn_fraction": {{cost_fn_frac}}, "fn_fixed": {{cost_fn_fixed}}}
+oof = res["logistic"][1]
+amount = dev["amount_usd"].to_numpy()
+grid = np.unique(np.r_[0, np.geomspace(1e-4, 1, 600)])
+
+
+def expected_cost(t):
+    flag = oof >= t
+    tp, fp = (flag & (y == 1)).sum(), (flag & (y == 0)).sum()
+    missed = ~flag & (y == 1)
+    lost = COST["fn_fraction"] * amount[missed].sum() + missed.sum() * COST["fn_fixed"]
+    return (tp + fp) * COST["review"] + fp * COST["friction"] + lost
+
+
+cost = np.array([expected_cost(t) for t in grid]) / len(y) * 1000
+best = grid[cost.argmin()]
+nothing = expected_cost(np.inf) / len(y) * 1000
+flag = oof >= best
+recall, precision = (flag & (y == 1)).sum() / y.sum(), (flag & (y == 1)).sum() / flag.sum()
+
+fig, ax = plt.subplots(figsize=(7, 3.4))
+ax.plot(grid[1:], cost[1:], color="#2a78d6", lw=1.6, label="logistic + threshold")
+ax.axhline(nothing, color="0.5", ls="--", lw=1, label="step up nobody")
+ax.axvline(best, color="#eb6834", ls=":", lw=1.2, label=f"lowest cost, threshold {best:.4f}")
+ax.set(xscale="log", ylim=(0, nothing * 1.6), xlabel="step-up threshold (model score, log scale)",
+       ylabel="expected cost (USD per 1,000 txn)", title="Illustrative costs: where to draw the line")
+ax.legend(frameon=False, fontsize=8)
+plt.show()
+print(f"best threshold {best:.4f}: catches {recall:.1%} of fraud, {precision:.1%} of step-ups are fraud, "
+      f"cost {cost.min():,.0f} vs {nothing:,.0f} USD per 1,000 for stepping up nobody")
+print("the default 0.5 threshold would catch", f"{((oof >= 0.5) & (y == 1)).sum() / y.sum():.1%}", "of fraud")
+
+# %% [markdown]
+# **Project result:** threshold **{{threshold}}** (chosen on all three CV repeats). On the untouched
+# holdout, scored once, it caught **{{ho_recall}} {{ho_recall_ci}}** of fraud with PR-AUC
+# **{{ho_pr_auc}} {{ho_pr_auc_ci}}**. A random score would get {{ho_noskill}}.
+#
+# ## 6. Is it fair across ages?
+#
+# At the project threshold: step-up rate, recall and false-positive rate per age band, with 95% bootstrap
+# intervals.
+
+# %%
+T = {{threshold_raw}}
+band = pd.cut(dev["customer_age"], [17, 29, 44, 59, 200], labels=["18–29", "30–44", "45–59", "60+"])
+rng = np.random.default_rng(SEED)
+rows = []
+for b in band.cat.categories:
+    m_ = (band == b).to_numpy()
+    f_ = oof[m_] >= T
+    yy = y[m_]
+    n_pos, n_neg = (yy == 1).sum(), (yy == 0).sum()
+    tp, fp = (f_ & (yy == 1)).sum(), (f_ & (yy == 0)).sum()
+    tp_b, fp_b = rng.binomial(n_pos, tp / n_pos, 2000), rng.binomial(n_neg, fp / n_neg, 2000)
+    ci = lambda v: f"[{100 * np.quantile(v, 0.025):.1f}, {100 * np.quantile(v, 0.975):.1f}]"  # noqa: E731
+    rows.append({
+        "band": b, "rows": m_.sum(), "fraud": n_pos,
+        "step-up %": f"{100 * (tp + fp) / m_.sum():.1f} {ci((tp_b + fp_b) / m_.sum())}",
+        "recall %": f"{100 * tp / n_pos:.1f} {ci(tp_b / n_pos)}",
+        "false-positive %": f"{100 * fp / n_neg:.1f} {ci(fp_b / n_neg)}",
+    })
+pd.DataFrame(rows)
+
+# %% [markdown]
+# With only {{fair_fraud_min}}–{{fair_fraud_max}} fraud cases per band, the recall intervals are wide.
+# **Project result (pre-registered, Bonferroni over {{fair_n_comparisons}} comparisons):**
+# {{fair_headline}}. That is **not** evidence of fairness, only that this much data cannot tell the bands
+# apart. At the unadjusted 95% level {{fair_n_95}} gaps exclude 0 ({{fair_direction}}). Removing
+# `customer_age` changed PR-AUC by {{noage_diff}} {{noage_ci}} ({{noage_verdict}}).
+#
+# ## 7. Limitations
+#
+# - **Unspecified provenance.** The data may be synthetic; patterns can be artefacts of how it was made.
+# - **No customer ID or real timestamp.** No customer-history features and no out-of-time test.
+# - **Few fraud cases** ({{n_fraud}} in total). Every number needs an interval, and small differences are noise.
+# - **Illustrative costs.** With a bank's real costs, re-derive the threshold.
+#
+# ## 8. More
+#
+# - Full project (pre-registration, 15-fold CV, one-time holdout, SHAP, model card): **{{url_github}}**
+# - Live console, with the model running in your browser, a threshold simulator and per-transaction
+#   explanations: **{{url_website}}**
+
+# %%
+print(f"notebook ran in {time.time() - T_START:.0f} s")

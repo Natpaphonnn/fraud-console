@@ -71,6 +71,18 @@ Exact linear SHAP values (coefficient × centred input). The top three features,
 - Best boosting (`{{best_boost_name}}`) minus logistic: {{boost_vs_lr_diff}} {{boost_vs_lr_ci}} → logistic kept.
 - `is_ai_generated_scam_attempt` (with minus without): {{ai_flag_diff}} {{ai_flag_ci}} → kept.
 - Calibration: {{calibration_verdict}}.
+- P5 check (pre-registered A6), each minus the final logistic model: splines on numeric inputs (GAM-like) {{gam_diff}} {{gam_ci}} → {{gam_verdict}}; pairwise red-flag interactions {{pairs_diff}} {{pairs_ci}} → {{pairs_verdict}}. Final model unchanged.
+
+## Fairness by age (pre-registered, P5)
+
+Dev out-of-fold scores (CV repeat r0) at the project threshold {{fair_threshold}}, four age bands, stratified bootstrap 95% intervals ({{fair_n_boot}} resamples). The holdout was not used. The rule was fixed before the results (`notes/00_preregistration.md`, A5): a gap between a band and all other rows counts as real only if its Bonferroni-adjusted interval ({{fair_n_comparisons}} comparisons) excludes 0.
+
+{{fair_table_md}}
+
+- **Gaps passing the rule: {{fair_n_real}} of {{fair_n_comparisons}}.** All are **{{fair_verdict}}**. This is **not** evidence that the model is fair: bands have only {{fair_fraud_min}}–{{fair_fraud_max}} fraud cases, and the widest adjusted interval spans {{fair_widest}}.
+- At the unadjusted 95% level, {{fair_n_95}} gaps exclude 0: {{fair_hint}}. Where they point the same way, {{fair_direction}}. This is a lead to re-check on more data, not a finding.
+- **Without `customer_age`:** PR-AUC {{noage_diff}} {{noage_ci}} ({{noage_verdict}}). Step-up rate changes for 18–29 ({{noage_young}}) and for 60+ ({{noage_old}}) (descriptive). Age ranks {{age_shap_rank}} features by mean |SHAP| ({{age_shap_share}} of the total). Dropping age is an option where using it is not acceptable.
+- Age is the only person attribute in the data. No causal or legal claim is made; a real deployment needs its own fairness review on real data.
 
 ## Limitations and risks
 
@@ -79,7 +91,7 @@ Exact linear SHAP values (coefficient × centred input). The top three features,
 - **No real timestamps.** No out-of-time validation; temporal drift is untested.
 - **Small positive class.** {{n_fraud}} fraud cases in total, {{ho_fraud}} in the holdout; holdout cost intervals are wide.
 - **Assumed costs.** All cost numbers are illustrative; real costs differ by institution and change the threshold.
-- **Fairness not assessed.** `customer_age` is an input; no protected-attribute analysis was done. Any real use would need one.
+- **Fairness only partly assessed.** Age bands only (see above): gaps were not distinguishable with this data, which does not establish fairness. No other person attributes exist to check.
 - **Probabilities.** Sigmoid and isotonic calibration did not improve the Brier score on CV (Brier {{lr_brier}}); calibration under drift was not checked.
 
 ## Reproduce

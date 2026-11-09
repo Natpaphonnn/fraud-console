@@ -133,11 +133,26 @@ fig("p2_shap_global", 520)
 
 # %%
 display(
+    Markdown(f"""
+## 7. Fairness by age and two extra model checks (P5, pre-registered)
+
+- {c["fair_headline"]} ({c["fair_n_real"]} of {c["fair_n_comparisons"]} gaps across four age bands, Bonferroni).
+  Bands hold only {c["fair_fraud_min"]}–{c["fair_fraud_max"]} fraud cases, so this is **not** evidence of
+  fairness. At the unadjusted 95% level {c["fair_n_95"]} gaps exclude 0 ({c["fair_direction"]}).
+- Removing `customer_age`: PR-AUC {c["noage_diff"]} {c["noage_ci"]} ({c["noage_verdict"]}).
+- Splines (GAM-like) {c["gam_diff"]} {c["gam_ci"]} and red-flag interactions {c["pairs_diff"]} {c["pairs_ci"]}
+  vs logistic: {c["gam_verdict"]} / {c["pairs_verdict"]}.
+""")
+)
+fig("p5_fairness")
+
+# %%
+display(
     Markdown("""
-## 7. Where to look next
+## 8. Where to look next
 
 - Method and decision rules: `notes/00_preregistration.md` (with dated amendments A1–A4).
-- Full results: notebooks 01–06; model card: `docs/model_card.md`.
+- Full results: notebooks 01–06, 08 (fairness) and 09 (interactions); model card: `docs/model_card.md`.
 - Deferred: API / Docker / MLflow / CI and drift monitoring.
 """)
 )

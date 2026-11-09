@@ -696,6 +696,7 @@ const COMMANDS = [
   ["report", "Main results (with CIs)", () => goTo("r-results")],
   ["report", "What drives the score (SHAP)", () => goTo("r-drivers")],
   ["report", "What didn't work (SMOTE, decline tier)", () => goTo("r-didnt-work")],
+  ["report", "Fairness by age", () => goTo("r-fairness")],
   ["report", "How the evaluation stays honest", () => goTo("r-method")],
   ["section", "Credits & data licence", () => goTo("credits")],
   ["action", "Play / pause the stream  (P)", () => togglePlay()],

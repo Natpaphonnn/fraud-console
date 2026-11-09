@@ -92,7 +92,55 @@ def forest_rows() -> list[dict]:
                 "verdict": VERDICT[d["verdict"]],
             }
         )
+    # P5 (pre-registration A6): extensions of the final logistic model
+    p5 = _json("p5_interactions")["variants"]
+    for key, label in (
+        ("spline", "Splines on numeric inputs (GAM-like) vs logistic"),
+        ("flag_pairs", "Red-flag pairwise interactions vs logistic"),
+    ):
+        t = p5[key]["test"]
+        rows.append(
+            {
+                "label": label,
+                "diff": t["mean_diff_b_minus_a"],
+                "lo": t["ci_low"],
+                "hi": t["ci_high"],
+                "verdict": VERDICT[t["verdict"]],
+            }
+        )
     return rows
+
+
+FAIR_COLS = [
+    ("stepup_rate", "step-up rate"),
+    ("recall", "recall"),
+    ("precision", "precision"),
+    ("fpr", "FPR"),
+]
+
+
+def fairness_html() -> str:
+    """Per-age-band table (value + 95% CI) from reports/p5_fairness.json."""
+    f = _json("p5_fairness")
+    head = "".join(f'<th scope="col">{html.escape(lbl)}</th>' for _, lbl in FAIR_COLS)
+    body = ""
+    for g in f["groups"]:
+        cells = "".join(
+            f'<td>{100 * g[k]:.1f}%<span class="ci">[{100 * g[k + "_ci_low"]:.1f}, '
+            f"{100 * g[k + '_ci_high']:.1f}]</span></td>"
+            for k, _ in FAIR_COLS
+        )
+        body += (
+            f'<tr><th scope="row">{html.escape(g["group"])}</th><td>{g["n"]:,}</td>'
+            f"<td>{g['n_fraud']}</td>{cells}</tr>"
+        )
+    return (
+        '<div class="table-scroll"><table class="results fair">'
+        "<caption>Dev out-of-fold scores (CV repeat r0) at the project threshold; brackets are 95% "
+        "stratified bootstrap intervals.</caption>"
+        '<thead><tr><th scope="col">age band</th><th scope="col">rows</th>'
+        f'<th scope="col">fraud</th>{head}</tr></thead><tbody>{body}</tbody></table></div>'
+    )
 
 
 def _pos(x: float, lo: float, hi: float) -> str:
@@ -265,6 +313,7 @@ def build_site() -> dict[str, bytes]:
         "csp_meta": csp_meta(),
         "shap_html": shap_html(),
         "forest_html": forest_html(forest_rows()),
+        "fairness_html": fairness_html(),
         "data_json": _data_json(page_data()),
         "data_sha_short": meta["data_sha256"][:12],
         "stream_n": f"{stream['n_rows']:,}",

@@ -1,4 +1,4 @@
-.PHONY: check lint test notebooks kaggle docs web-model web-serve web-preview web-live
+.PHONY: check lint test notebooks kaggle docs web-model web-serve web-preview web-live kaggle-test
 
 check: lint test
 
@@ -44,3 +44,7 @@ web-preview:
 # smoke-test the deployed page (GitHub Pages URL from configs/links.yaml)
 web-live:
 	cd scripts && uv run --with playwright python check_live.py
+
+# run the Kaggle story + 08/09 editions in a simulated Kaggle layout
+kaggle-test:
+	uv run python scripts/test_kaggle.py

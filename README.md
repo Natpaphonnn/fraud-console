@@ -34,6 +34,8 @@ Final model: **logistic regression**. Fraud is 1.70% of transactions, so a rando
 - **Logistic regression beat gradient boosting on this dataset.** Best boosting pipeline (`lgbm_tuned`) minus logistic: PR-AUC -0.048 [-0.084, -0.012]. Fraud odds multiply with each extra red flag (×7.6, ×5.7, ×4.9, ×3.2 going from 0→1, 1→2, 2→3 and 3→4+ flags), roughly the additive log-odds shape a logistic model captures directly; tuning pushed LightGBM towards very small trees and it still did not catch up. This is a statement about this data, not about fraud models in general.
 - **SMOTE made things worse** (PR-AUC -0.177 [-0.229, -0.125] vs no resampling). SMOTENC sets categorical/boolean features by neighbour majority vote, so synthetic fraud carried red flags only 0.38× as often as real fraud. Class weights (-0.023 [-0.058, +0.013]) and undersampling (-0.005 [-0.036, +0.026]) did not help either.
 - **A decline tier did not clearly pay off.** Approve / step-up / decline looked cheaper on CV (-104 USD per 1,000 transactions) but on the holdout the difference was -21 USD [-103, +60].
+- **Fairness by age: No gap passes the pre-registered rule.** Step-up rate, recall, precision and false-positive rate per age band (16 comparisons, Bonferroni) are all **not distinguishable**, which is not evidence of fairness. At the unadjusted 95% level 4 gaps exclude 0 (older bands sit above the rest and younger bands below). Removing `customer_age` changes PR-AUC by -0.002 [-0.008, +0.005] (not distinguishable).
+- **Splines and red-flag interactions did not help** (-0.016 [-0.041, +0.009] and +0.002 [-0.021, +0.024] vs logistic): the additive model is not visibly missing structure.
 - **The threshold depends on the cost assumptions.** Scaling each cost ×0.5 or ×2 moves the best threshold between 0.0292 and 0.1334.
 
 ## Data
@@ -55,8 +57,10 @@ Final model: **logistic regression**. Fraud is 1.70% of transactions, so a rando
 | 04 | [Modelling](notebooks/04_modeling.ipynb) | Boosting, imbalance handling, tuning, calibration — what actually helps? |
 | 05 | [Threshold and cost](notebooks/05_threshold_and_cost.ipynb) | Which threshold minimises cost? Does it hold on the holdout? |
 | 06 | [Explainability](notebooks/06_explainability.ipynb) | What drives the score, overall and per transaction? |
+| 08 | [Fairness by age](notebooks/08_fairness.ipynb) | Do age groups get different step-up, recall or false-alarm rates? Is age needed? |
+| 09 | [Interactions / GAM](notebooks/09_interactions.ipynb) | Does logistic regression miss non-linear or interaction structure? |
 
-Self-contained Kaggle editions of 01–06 are in [`kaggle/`](kaggle/).
+Self-contained Kaggle editions of 01–06, 08 and 09 are in [`kaggle/`](kaggle/), plus a 10-minute story notebook that tells the whole project in one place ([`kaggle/fraud_story.ipynb`](kaggle/fraud_story.ipynb)).
 
 ## How the evaluation stays honest
 

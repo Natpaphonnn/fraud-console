@@ -35,6 +35,9 @@ NEEDS: dict[str, list[str]] = {
     + ["reports/p2_modeling.json"],
     "06_explainability": [f"{_CV}/final.{x}" for x in ("folds.csv", "spec.json", "oof.csv.gz")]
     + ["reports/p2_modeling.json", "reports/p2_threshold_web.json"],
+    "08_fairness": [f"{_CV}/final.{x}" for x in ("folds.csv", "spec.json", "oof.csv.gz")]
+    + ["reports/p2_threshold.json", "reports/p2_shap.json"],
+    "09_interactions": [f"{_CV}/final.{x}" for x in ("folds.csv", "spec.json")],
 }
 
 
@@ -102,8 +105,60 @@ def build(py_path: Path) -> Path:
     return out
 
 
+STORY = REPO / "notebooks" / "story" / "fraud_story.py.tmpl"
+
+
+def story_text(ctx: dict[str, str]) -> str:
+    from fraud_e2e.summary import render
+
+    return render(STORY.read_text(), ctx)
+
+
+def build_story() -> Path:
+    """kaggle/fraud_story.ipynb: one self-contained 10-minute notebook (no project package needed).
+
+    Live results are computed in the notebook; quoted project results and settings are injected here
+    from reports/ and the project code, so no number is typed by hand.
+    """
+    import json
+
+    from fraud_e2e import config as C
+    from fraud_e2e.features import LOG_COLS
+    from fraud_e2e.models import DEFAULTS, SMOTE_K, SMOTE_RATIO
+    from fraud_e2e.summary import build_context, load_links
+
+    links = load_links()
+    reports = REPO / "reports"
+    modeling = json.loads((reports / "p2_modeling.json").read_text())
+    thr = json.loads((reports / "p2_threshold.json").read_text())["threshold"]
+    ctx = build_context() | {
+        "cat_cols": repr(C.CATEGORICAL_COLS),
+        "bool_cols": repr(C.BOOLEAN_COLS),
+        "num_cols": repr(C.NUMERIC_COLS),
+        "log_cols": repr(LOG_COLS),
+        "lgbm_default": repr(DEFAULTS["lgbm"]),
+        "lgbm_tuned": repr(modeling["tuning"]["best_params"]),
+        "smote_ratio": repr(SMOTE_RATIO),
+        "smote_k": repr(SMOTE_K),
+        "threshold_raw": repr(thr),
+        "url_github": links["github"] or "(GitHub link: see configs/links.yaml)",
+        "url_website": links["website"] or "(website link: see configs/links.yaml)",
+    }
+    nb = jupytext.reads(story_text(ctx), fmt="py:percent")
+    nb.metadata["kernelspec"] = {
+        "display_name": "Python 3",
+        "language": "python",
+        "name": "python3",
+    }
+    OUT.mkdir(exist_ok=True)
+    out = OUT / "fraud_story.ipynb"
+    nbformat.write(nb, out)
+    return out
+
+
 if __name__ == "__main__":
     for py in sorted(NB_SRC.glob("*.py")):
         if py.stem == "00_summary":  # reads every other notebook's results; repo-only
             continue
         print("built", build(py).relative_to(REPO))
+    print("built", build_story().relative_to(REPO))

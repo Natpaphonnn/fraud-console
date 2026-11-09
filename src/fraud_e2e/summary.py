@@ -245,8 +245,88 @@ def build_context() -> dict[str, str]:
     ex = {e["label"]: e for e in shap["examples"]}
     c["shap_missed_amount"] = f"{ex['missed fraud']['amount_usd']:,.2f} USD"
 
+    c |= fairness_context()
+
     for key, url in load_links().items():
         c[f"link_{key}_md"] = f"[{LINK_LABELS[key]}]({url})" if url else "_coming soon_"
+    return c
+
+
+FAIR_LABEL = {
+    "stepup_rate": "step-up rate",
+    "recall": "recall",
+    "precision": "precision",
+    "fpr": "false-positive rate",
+}
+
+
+def fairness_context() -> dict[str, str]:
+    """P5: fairness by age (pre-registration A5) and the interaction / GAM check (A6)."""
+    f = _j("p5_fairness")
+    c: dict[str, str] = {}
+    rows = [
+        "| Age band | Rows | Fraud | Step-up rate | Recall | Precision | False-positive rate |",
+        "|---|---|---|---|---|---|---|",
+    ]
+
+    def cell(g, k):
+        return f"{pct(g[k])} [{100 * g[k + '_ci_low']:.1f}, {100 * g[k + '_ci_high']:.1f}]"
+
+    for g in f["groups"]:
+        rows.append(
+            f"| {g['group']} | {g['n']:,} | {g['n_fraud']} | {cell(g, 'stepup_rate')} | "
+            f"{cell(g, 'recall')} | {cell(g, 'precision')} | {cell(g, 'fpr')} |"
+        )
+    gaps = f["gaps"]
+    hint = [x for x in gaps if x["ci_low"] > 0 or x["ci_high"] < 0]
+    widest = max(gaps, key=lambda x: x["ci_adj_high"] - x["ci_adj_low"])
+    fr = {g["group"]: g for g in f["groups"]}
+    na = {g["group"]: g for g in f["no_age"]["groups"]}
+    t = f["no_age"]["test"]
+    c |= {
+        "fair_table_md": "\n".join(rows),
+        "fair_threshold": f"{f['threshold']:.4f}",
+        "fair_n_boot": f"{f['n_boot']:,}",
+        "fair_n_comparisons": str(f["n_comparisons"]),
+        "fair_n_real": str(f["n_gaps_real"]),
+        "fair_n_95": str(f["n_gaps_95_excluding_0"]),
+        "fair_fraud_min": str(min(g["n_fraud"] for g in f["groups"])),
+        "fair_fraud_max": str(max(g["n_fraud"] for g in f["groups"])),
+        "fair_widest": f"{100 * (widest['ci_adj_high'] - widest['ci_adj_low']):.1f} pp "
+        f"({widest['group']}, {FAIR_LABEL[widest['metric']]})",
+        "fair_hint": "; ".join(
+            f"{x['group']} {FAIR_LABEL[x['metric']]} {100 * x['diff']:+.2f} pp "
+            f"[{100 * x['ci_low']:+.2f}, {100 * x['ci_high']:+.2f}]"
+            for x in hint
+        )
+        or "none",
+        "fair_verdict": "not distinguishable"
+        if f["n_gaps_real"] == 0
+        else f"{f['n_gaps_real']} real",
+        "fair_headline": "No gap passes the pre-registered rule"
+        if f["n_gaps_real"] == 0
+        else f"{f['n_gaps_real']} of {f['n_comparisons']} gaps pass the pre-registered rule",
+        "fair_direction": (
+            "older bands sit above the rest and younger bands below"
+            if hint and all((x["diff"] > 0) == (x["group"] in ("45–59", "60+")) for x in hint)
+            else "they do not share one direction"
+        ),
+        "noage_diff": signed(t["mean_diff_b_minus_a"]),
+        "noage_ci": ci_signed(t["ci_low"], t["ci_high"]),
+        "noage_verdict": t["verdict"],
+        "noage_young": f"{pct(fr['18–29']['stepup_rate'])} → {pct(na['18–29']['stepup_rate'])}",
+        "noage_old": f"{pct(fr['60+']['stepup_rate'])} → {pct(na['60+']['stepup_rate'])}",
+        "age_shap_rank": f"{f['customer_age_shap']['rank']} of {f['customer_age_shap']['of']}",
+        "age_shap_share": pct(f["customer_age_shap"]["share"]),
+    }
+    ia = _j("p5_interactions")["variants"]
+    for key, name in (("spline", "gam"), ("flag_pairs", "pairs")):
+        x = ia[key]["test"]
+        c |= {
+            f"{name}_diff": signed(x["mean_diff_b_minus_a"]),
+            f"{name}_ci": ci_signed(x["ci_low"], x["ci_high"]),
+            f"{name}_verdict": x["verdict"],
+        }
     return c
 
 
