@@ -1,0 +1,13 @@
+{
+  "name": "logreg_no_age",
+  "spec": {
+    "params": {},
+    "imbalance": "none",
+    "drop": [
+      "customer_age"
+    ],
+    "calibration": null,
+    "model": "logreg"
+  },
+  "spec_id": "02a4461df9dd"
+}

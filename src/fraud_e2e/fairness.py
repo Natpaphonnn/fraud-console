@@ -60,6 +60,11 @@ def _ci(x, alpha):
     return float(np.nanquantile(x, alpha / 2)), float(np.nanquantile(x, 1 - alpha / 2))
 
 
+def overall_rates(y, score, t: float) -> dict[str, float]:
+    """The four metrics on all rows together (point values)."""
+    return {k: float(v) for k, v in _rates(*_counts(y, np.asarray(score) >= t)).items()}
+
+
 def group_metrics(
     y, score, groups, t: float, n_boot: int = N_BOOT, seed: int = C.SEED
 ) -> pd.DataFrame:
