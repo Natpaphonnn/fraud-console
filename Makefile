@@ -24,7 +24,7 @@ kaggle:
 	uv run python scripts/build_kaggle.py
 	uv run python scripts/clean_notebooks.py kaggle/*.ipynb
 
-# README, model card, Thai interview notes and the website, all from reports/ + configs/links.yaml
+# README, model card and the website, all from reports/ + configs/links.yaml (+ local-only docs if present)
 docs:
 	uv run python scripts/render_docs.py
 	uv run python scripts/build_web.py

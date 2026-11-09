@@ -6,3 +6,4 @@
 - File: credit_card_fraud_2026.csv, 20000 rows, 26 columns, fraud 339 (1.695%)
 - sha256: 4e32b1ad4880cae452d1f2e5aa53224d38eb913c185455c00a3759df5eb3da61
 - Downloaded from the Kaggle page above on 16 Jul 2026; committed unmodified (see sha256)
+- Credit: dataset created and published by Udit Jain. This repository's MIT licence does not cover this file.

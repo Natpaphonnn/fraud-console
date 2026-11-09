@@ -1,6 +1,6 @@
 """One place that turns committed artifacts (reports/*) into formatted numbers.
 
-README, model card, interview notes and notebook 00 all quote numbers through
+README, the model card, notebook 00 and the website quote numbers through
 `build_context()`, so no document ever contains a hand-typed result.
 Templates use `{{key}}` placeholders; `render()` fails on any unknown key.
 """
@@ -246,7 +246,7 @@ def build_context() -> dict[str, str]:
     c["shap_missed_amount"] = f"{ex['missed fraud']['amount_usd']:,.2f} USD"
 
     for key, url in load_links().items():
-        c[f"link_{key}_md"] = f"[{LINK_LABELS[key]}]({url})" if url else "_TODO (Nat)_"
+        c[f"link_{key}_md"] = f"[{LINK_LABELS[key]}]({url})" if url else "_coming soon_"
     return c
 
 

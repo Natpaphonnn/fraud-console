@@ -2,9 +2,11 @@
 
 An end-to-end data-science case study on a small, highly imbalanced fraud dataset: data checks, EDA, pre-registered model comparison, expected-cost thresholds, a one-time holdout check and explanations — with an uncertainty interval on every number.
 
-**Links:** Project page (with threshold simulator): _TODO (Nat)_ · Kaggle notebooks: _TODO (Nat)_ · Medium article: _TODO (Nat)_
+**Links:** Project page (with threshold simulator): _coming soon_ · Kaggle notebooks: _coming soon_ · Medium article: _coming soon_
 
 > **Status:** data-science work complete (notebooks 00–06, model card) and a static "fraud console" project page (`web/site/`): the logistic model runs in the browser on a live stream of dev transactions, with per-feature contributions, a build-your-own transaction form and a cost/threshold simulator. Engineering (API, Docker, MLflow, CI) and monitoring are deferred.
+
+![Fraud console: transactions scored live in the browser, with outcomes and a per-feature inspector](reports/web_preview/desktop_hero.png)
 
 ## The problem
 
@@ -69,7 +71,7 @@ Self-contained Kaggle editions of 01–06 are in [`kaggle/`](kaggle/).
 uv sync              # Python 3.12 environment from uv.lock
 make check           # ruff + pytest (incl. leakage/split guards) + docs/website freshness + JS tests
 make notebooks       # re-execute notebooks 00–06 in order; results land in reports/
-make docs            # regenerate README.md, docs/model_card.md, notes/interview_notes_th.md, web/site/
+make docs            # regenerate README.md, docs/model_card.md and web/site/ from reports/
 make web-serve       # preview the project page at http://localhost:8000
 make kaggle          # rebuild Kaggle editions
 ```
@@ -90,6 +92,7 @@ configs/         cost assumptions, public links
 tests/           pytest suite
 ```
 
-## Credits
+## Licence and credits
 
-Dataset by Udit Jain, released under CC0 on Kaggle.
+- **Code:** MIT, see [LICENSE](LICENSE).
+- **Data:** *Credit Card Fraud Detection 2026* by **Udit Jain**, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain dedication by its author), committed unmodified with its source and hash in [`data/raw/SOURCE.md`](data/raw/SOURCE.md). The MIT licence does not apply to it.

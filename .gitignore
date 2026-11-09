@@ -45,3 +45,9 @@ web/.vercel/
 reports/cv/*.oof.csv.gz
 !reports/cv/final*.oof.csv.gz
 !reports/cv/logreg*.oof.csv.gz
+
+# Private / local-only (not published)
+CLAUDE.md
+.claude/
+notes/interview_notes_th.md
+docs/templates/interview_notes_th.md.tmpl

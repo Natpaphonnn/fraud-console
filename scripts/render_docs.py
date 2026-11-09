@@ -16,8 +16,12 @@ T = REPO / "docs" / "templates"
 DOCS = {
     T / "README.md.tmpl": REPO / "README.md",
     T / "model_card.md.tmpl": REPO / "docs" / "model_card.md",
+}
+# Local-only documents (git-ignored): rendered when their template exists on this machine.
+PRIVATE = {
     T / "interview_notes_th.md.tmpl": REPO / "notes" / "interview_notes_th.md",
 }
+DOCS |= {t: o for t, o in PRIVATE.items() if t.exists()}
 
 
 def main(check: bool) -> int:

@@ -141,7 +141,7 @@ P.plt.show()
 # ## 4. Save
 
 # %%
-write_json(
+saved = write_json(
     {
         "pipelines": {
             r.name: {m: metric_ci(r, m) for m in ["pr_auc", "roc_auc", "brier"]} | {"spec": r.spec}
@@ -153,6 +153,7 @@ write_json(
     },
     "p2_baseline",
 )
+print("saved", saved.relative_to(C.ROOT))
 
 # %% [markdown]
 # ## Summary

@@ -221,7 +221,7 @@ P.save(fig, "p2_shap_examples")
 P.plt.show()
 
 # %%
-write_json(
+saved = write_json(
     {
         "explained_model": explain_spec,
         "base_log_odds": base_value,
@@ -232,6 +232,7 @@ write_json(
     },
     "p2_shap",
 )
+print("saved", saved.relative_to(C.ROOT))
 
 # %% [markdown]
 # ## Summary
