@@ -120,6 +120,10 @@ differently, and does it need `customer_age` at all? Model choice and threshold 
   reported descriptively.
 - **Not claimed:** no causal or legal fairness claim. Age is the only person attribute in the data, and
   the data's provenance is unspecified.
+- **Implementation note (added before any result, same day):** 20,000 resamples instead of 2,000, because
+  the Bonferroni interval uses the 0.16% tails and 2,000 draws put only ~3 values there. The metrics depend
+  only on counts, so each stratified resample is drawn exactly as two binomials per side (flagged fraud out of
+  the fraud cases, flagged legit out of the legit cases); this is the same distribution as resampling rows.
 
 ### A6 — 2026-11-09 — P5 interaction / GAM check (optional), written before any result
 
