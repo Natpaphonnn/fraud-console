@@ -15,10 +15,13 @@ from __future__ import annotations
 
 import functools
 import http.server
+import shutil
 import socketserver
+import subprocess
 import sys
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
@@ -87,6 +90,114 @@ def step_until_catch(page: Page, min_rows: int = 30, max_rows: int = 400) -> Non
         page.click("#s-step")
 
 
+def settle(page: Page) -> None:
+    """Wait two animation frames so per-frame visuals have redrawn."""
+    page.evaluate("new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
+
+
+def visuals_match_counters(page: Page, check: Checks, label: str) -> None:
+    """Every visual must show what the counters show (same state, no separate numbers)."""
+    settle(page)
+    v = page.evaluate(
+        """() => {
+          const ds = (id) => document.getElementById(id).dataset;
+          const flow = Object.fromEntries([...document.querySelectorAll('#flow .fl-bucket')]
+            .map(b => [b.dataset.outcome, Number(b.dataset.count)]));
+          const ctr = Object.fromEntries(['tp', 'fp', 'fn', 'tn']
+            .map(k => [k, Number(ds('c-' + k).count)]));
+          const num = (x) => (x === '' || x === 'NaN' || x === undefined ? null : Number(x));
+          return {
+            flow, ctr,
+            stepup: Number(document.querySelector('#flow .fl-step').dataset.count),
+            approve: Number(document.querySelector('#flow .fl-approve').dataset.count),
+            flowN: Number(ds('flow').n), dots: Number(ds('strip').dots),
+            played: Number(document.getElementById('c-played').textContent
+              .split('/')[0].replace(/,/g, '')),
+            convR: num(ds('conv').recallLast), convP: num(ds('conv').precisionLast),
+            ctrR: num(ds('c-recall').value), ctrP: num(ds('c-precision').value),
+            convFullR: num(ds('conv').recallFull), fullR: num(ds('f-recall').value),
+            prR: Number(ds('pr').recall), prP: Number(ds('pr').precision),
+            tileR: document.getElementById('o-recall').textContent,
+            tileP: document.getElementById('o-precision').textContent,
+          };
+        }"""
+    )
+    c = v["ctr"]
+    check(v["flow"] == c, f"{label}: flow outcome lanes = counters {c}")
+    check(
+        v["stepup"] == c["tp"] + c["fp"] and v["approve"] == c["fn"] + c["tn"],
+        f"{label}: STEP-UP / APPROVE lanes = counters ({v['stepup']} / {v['approve']})",
+    )
+    check(
+        v["flowN"] == v["dots"] == v["played"],
+        f"{label}: flow, strip and counter rows agree ({v['played']})",
+    )
+    check(
+        v["convR"] == v["ctrR"] and v["convP"] == v["ctrP"],
+        f"{label}: convergence chart ends at the counters ({v['convR']}, {v['convP']})",
+    )
+    check(v["convFullR"] == v["fullR"], f"{label}: convergence reference line = full-sample recall")
+    pr_ok = f"{100 * v['prR']:.1f}%" == v["tileR"] and f"{100 * v['prP']:.1f}%" == v["tileP"]
+    check(pr_ok, f"{label}: PR-curve dot = simulator tiles ({v['tileR']}, {v['tileP']})")
+
+
+def measure_fps(page: Page, ms: int = 2000) -> tuple[float, float]:
+    return tuple(
+        page.evaluate(
+            """(ms) => new Promise(done => {
+                 let n = 0, worst = 0, last = performance.now(); const t0 = last;
+                 const f = (t) => { n++; worst = Math.max(worst, t - last); last = t;
+                   if (t - t0 < ms) requestAnimationFrame(f);
+                   else done([n * 1000 / (t - t0), worst]); };
+                 requestAnimationFrame(f);
+               })""",
+            ms,
+        )
+    )
+
+
+def record_video(browser, url: str, seconds: float = 8.0) -> None:
+    """The hero at 4x as a short clip: reports/web_preview/stream.webm (+ stream.gif).
+
+    Frames are full-viewport screenshots taken back to back (Chrome's own headless recorder
+    emits some undersized frames), assembled by ffmpeg at the measured capture rate.
+    """
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        print("ffmpeg not found: skipping the stream clip")
+        return
+    page = browser.new_page(viewport={"width": 1280, "height": 720})
+    page.goto(url, wait_until="networkidle")
+    page.click('.seg [data-speed="4"]')
+    page.evaluate("document.getElementById('flow').scrollIntoView({block: 'start'})")
+    page.evaluate("window.scrollBy(0, -70)")
+    page.wait_for_timeout(800)
+    frames = Path(tempfile.mkdtemp())
+    t0 = time.perf_counter()
+    k = 0
+    while time.perf_counter() - t0 < seconds:
+        page.screenshot(path=frames / f"f{k:04d}.png")
+        k += 1
+    fps = k / (time.perf_counter() - t0)
+    page.close()
+    pattern = str(frames / "f%04d.png")
+    rate = f"{fps:.3f}"
+    subprocess.run(
+        [ffmpeg, "-y", "-loglevel", "error", "-framerate", rate, "-i", pattern,
+         "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "38", "-pix_fmt", "yuv420p",
+         "-row-mt", "1", str(OUT / "stream.webm")],
+        check=True,
+    )  # fmt: skip
+    palette = "split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=none"
+    subprocess.run(
+        [ffmpeg, "-y", "-loglevel", "error", "-framerate", rate, "-i", pattern,
+         "-vf", f"scale=800:-1:flags=lanczos,{palette}", str(OUT / "stream.gif")],
+        check=True,
+    )  # fmt: skip
+    shutil.rmtree(frames, ignore_errors=True)
+    print(f"wrote reports/web_preview/stream.webm + stream.gif ({k} frames, {fps:.1f} fps capture)")
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     ctx = build_context()
@@ -143,8 +254,56 @@ def main() -> int:
             check("e-" not in page.text_content("#s-rows"), "stream scores use no e-notation")
             check("<0.0001" in text, "scores below 0.0001 show as <0.0001")
             check(page.is_visible(".srow--head .c-scale"), "score column header says 'log scale'")
+            visuals_match_counters(page, check, "desktop")
+            check(
+                page.get_attribute("#flow", "data-static") == "true"
+                and page.get_attribute("#flow-canvas", "data-animating") != "true"
+                and page.is_visible("#flow-static"),
+                "reduced motion: static Sankey, no moving dots, note shown",
+            )
+            page.evaluate("window.scrollTo(0, 0)")
+            settle(page)
             page.screenshot(path=OUT / "desktop.png", full_page=True)
             page.screenshot(path=OUT / "desktop_hero.png")
+
+            # drag the threshold line on the score strip
+            page.locator("#strip .strip-plot").scroll_into_view_if_needed()
+            box = page.locator("#strip .strip-plot").bounding_box()
+            t_before = page.text_content("#thr-out")
+            page.mouse.move(box["x"] + box["width"] * 0.5, box["y"] + box["height"] / 2)
+            page.mouse.down()
+            page.mouse.move(box["x"] + box["width"] * 0.82, box["y"] + box["height"] / 2, steps=6)
+            page.mouse.up()
+            t_after = page.text_content("#thr-out")
+            check(
+                float(t_after) > float(t_before)
+                and page.text_content("#thr-mini-out") == t_after
+                and page.input_value("#thr") == page.input_value("#thr-mini"),
+                f"dragging the strip line moves the shared threshold ({t_before} -> {t_after})",
+            )
+            visuals_match_counters(page, check, "after drag")
+            page.click("#btn-project")
+            visuals_match_counters(page, check, "back at project threshold")
+
+            # outcome bucket opens the latest transaction of that outcome
+            target = "fn" if page.get_attribute("#flow .fl-fn", "data-count") != "0" else "tp"
+            page.click(f"#flow .fl-{target}")
+            insp = " ".join(page.text_content("#insp-body").split())
+            want = ("truth: fraud", "APPROVE") if target == "fn" else ("truth: fraud", "STEP-UP")
+            check(
+                page.text_content("#insp-mode") == "pinned" and all(w in insp for w in want),
+                f"clicking the '{target}' outcome opens such a transaction in the inspector",
+            )
+
+            # filtered view: label on screen, counts unchanged
+            before_counts = page.get_attribute("#flow .fl-tn", "data-count")
+            page.click('[data-view="sample"]')
+            check(page.is_visible("#flow-filter"), "filtered dot view shows its label")
+            check(
+                page.get_attribute("#flow .fl-tn", "data-count") == before_counts,
+                "filtered dot view: lanes and counters still count every row",
+            )
+            page.click('[data-view="all"]')
 
             field = page.locator('#pg-fields [data-f="merchant_risk_score"]')
             field.fill("0")
@@ -207,9 +366,38 @@ def main() -> int:
                              || e.scrollWidth > e.clientWidth + 1).length"""
             )
             check(clipped == 0, f"mobile: legend and scores fit ({clipped} clipped)")
+            check(
+                page.get_attribute("#flow .flow-box", "class").find("vertical") >= 0,
+                "mobile: decision flow is vertical (top to bottom)",
+            )
+            visuals_match_counters(page, check, "mobile")
+            page.evaluate("window.scrollTo(0, 0)")
+            settle(page)
             page.screenshot(path=OUT / "mobile.png", full_page=True)
             page.screenshot(path=OUT / "mobile_hero.png")
             check(not errors, f"mobile: no console errors {errors}")
+            page.close()
+
+            # 3b. mobile with motion at 16x: smoothness
+            page, errors = open_page(
+                browser,
+                url,
+                check,
+                "mobile 16x",
+                viewport=MOBILE,
+                device_scale_factor=2,
+                is_mobile=True,
+                has_touch=True,
+            )
+            page.click('.seg [data-speed="16"]')
+            page.wait_for_timeout(600)
+            animating = page.get_attribute("#flow-canvas", "data-animating") == "true"
+            fps, worst = measure_fps(page)
+            check(animating, "mobile 16x: dots are moving")
+            check(fps >= 50, f"mobile 16x: ~{fps:.0f} fps (worst frame {worst:.0f} ms)")
+            page.click("#s-play")  # pause, then compare visuals with counters
+            visuals_match_counters(page, check, "mobile 16x paused")
+            check(not errors, f"mobile 16x: no console errors {errors}")
             page.close()
 
             # 4. light theme (toggle, persists across reload)
@@ -224,10 +412,13 @@ def main() -> int:
             stepped = page.locator("#s-rows button.srow:has(.dec.step)")
             if stepped.count():
                 stepped.first.click()
+            page.evaluate("window.scrollTo(0, 0)")
+            settle(page)
             page.screenshot(path=OUT / "light.png", full_page=True)
             page.screenshot(path=OUT / "light_hero.png")
             check(not errors, f"light: no console errors {errors}")
             page.close()
+            record_video(browser, url)
             browser.close()
     finally:
         httpd.shutdown()

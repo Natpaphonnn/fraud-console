@@ -20,7 +20,17 @@ from fraud_e2e.summary import LINK_LABELS, build_context, load_links, render
 WEB = C.ROOT / "web"
 SRC = WEB / "src"
 SITE = WEB / "site"
-STATIC = ("style.css", "theme.js", "app.js", "sim.js", "model.js", "favicon.svg", "vercel.json")
+STATIC = (
+    "style.css",
+    "theme.js",
+    "app.js",
+    "sim.js",
+    "model.js",
+    "flow.js",
+    "viz.js",
+    "favicon.svg",
+    "vercel.json",
+)
 TEMPLATE = "index.html.tmpl"
 SHAP_TOP = 10
 

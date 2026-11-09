@@ -86,7 +86,7 @@ def test_local_paths_are_relative(page):
     refs = re.findall(r'(?:href|src)="([^"]+)"', page)
     for url in refs:
         assert not url.startswith("/"), url
-    for name in ("app.js", "model.js", "sim.js"):
+    for name in ("app.js", "model.js", "sim.js", "flow.js", "viz.js"):
         js = build_site()[name].decode()
         for spec in re.findall(r'from\s+"([^"]+)"', js):
             assert spec.startswith("./"), (name, spec)

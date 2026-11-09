@@ -1,5 +1,6 @@
 // Fraud console. All numbers come from the page data (#site-data), built by
 // scripts/build_web.py from reports/. Scoring logic: model.js; cost logic: sim.js.
+import { outcomeOf } from "./flow.js";
 import { contributions, prepareModel, score, streamRow } from "./model.js";
 import {
   PARAM_KEYS,
@@ -10,6 +11,7 @@ import {
   sampleOutcomes,
   validateParams,
 } from "./sim.js";
+import { createConvergence, createFlow, createPR, createStrip, tweenNumber } from "./viz.js";
 
 const DATA = JSON.parse(document.getElementById("site-data").textContent);
 const D = DATA.sim;
@@ -64,10 +66,27 @@ const thr = () => D.threshold[state.index];
 function setIndex(i) {
   state.index = Math.max(0, Math.min(D.threshold.length - 1, i));
   renderSim();
-  renderStream(false);
+  renderStream();
   renderCounters();
   renderInspector();
   renderPlayground();
+  viz.flow?.invalidate();
+  viz.pr?.render();
+  markDirty();
+}
+
+// visuals that redraw at most once per animation frame
+const viz = {};
+let dirty = true;
+const markDirty = () => {
+  dirty = true;
+};
+
+function selectRow(i) {
+  state.pinned = true;
+  state.selected = i;
+  renderStream();
+  renderInspector();
 }
 
 // ---------------------------------------------------------------- live stream
@@ -91,7 +110,8 @@ function sbar(s, t) {
   return wrap;
 }
 
-function renderStream(fresh) {
+// rows with index >= freshFrom are new this tick: a caught fraud flashes once
+function renderStream(freshFrom = Infinity) {
   const list = $("s-rows");
   const t = thr();
   const frag = document.createDocumentFragment();
@@ -99,7 +119,7 @@ function renderStream(fresh) {
     const r = ROWS[k];
     const [cls, glyph, label] = outcome(k);
     const li = h("li");
-    if (fresh && k === state.played - 1 && !REDUCED) li.className = "fresh";
+    if (k >= freshFrom && cls === "tp" && !REDUCED) li.className = "flash-tp";
     const b = h("button", "srow");
     b.type = "button";
     b.dataset.i = String(k);
@@ -130,21 +150,24 @@ function renderStream(fresh) {
 function renderCounters() {
   const t = thr();
   const full = sampleOutcomes(SCORES, Y, AMT, t, state.params);
-  $("f-recall").textContent = fmtPct(full.recall);
-  $("f-precision").textContent = fmtPct(full.precision);
-  $("f-alert").textContent = fmtPct(full.alertRate, 2);
-  $("f-cost").textContent = fmtUsd(full.costPer1000);
+  const pct = (nd) => (v) => fmtPct(v, nd);
+  const int = (v) => Math.round(v).toLocaleString("en-US");
+  tweenNumber($("f-recall"), full.recall, pct(1));
+  tweenNumber($("f-precision"), full.precision, pct(1));
+  tweenNumber($("f-alert"), full.alertRate, pct(2));
+  tweenNumber($("f-cost"), full.costPer1000, fmtUsd);
   $("f-counts").textContent =
     `${full.tp} caught · ${full.fn} missed · ${full.fp.toLocaleString("en-US")} false alarms · ` +
     `${full.tn.toLocaleString("en-US")} approved ok`;
   const k = state.played;
   const so = sampleOutcomes(SCORES.slice(0, k), Y.slice(0, k), AMT.slice(0, k), t, state.params);
-  $("c-tp").textContent = so.tp;
-  $("c-fn").textContent = so.fn;
-  $("c-fp").textContent = so.fp;
-  $("c-tn").textContent = so.tn.toLocaleString("en-US");
-  $("c-recall").textContent = fmtPct(so.recall, 0);
-  $("c-precision").textContent = fmtPct(so.precision, 0);
+  tweenNumber($("c-tp"), so.tp, int);
+  tweenNumber($("c-fn"), so.fn, int);
+  tweenNumber($("c-fp"), so.fp, int);
+  tweenNumber($("c-tn"), so.tn, int);
+  tweenNumber($("c-recall"), so.recall, pct(0));
+  tweenNumber($("c-precision"), so.precision, pct(0));
+  for (const [id, v] of [["c-tp", so.tp], ["c-fn", so.fn], ["c-fp", so.fp], ["c-tn", so.tn]]) $(id).dataset.count = String(v);
   $("c-played").textContent = `${k.toLocaleString("en-US")} / ${N.toLocaleString("en-US")} rows`;
 }
 
@@ -168,9 +191,12 @@ function advance(n) {
   state.played = Math.min(N, state.played + n);
   if (state.played === before) return;
   if (!state.pinned) state.selected = state.played - 1;
-  renderStream(true);
+  const gap = 1000 / (ROWS_PER_SEC * state.speed);
+  for (let i = before; i < state.played; i++) viz.flow?.spawn(i, (i - before) * gap);
+  renderStream(before);
   renderCounters();
   renderInspector();
+  markDirty();
   if (state.played >= N) {
     state.playing = false;
     renderPlayState();
@@ -189,6 +215,12 @@ function loop(ts) {
     }
   }
   last = ts;
+  viz.flow?.frame(ts);
+  if (dirty) {
+    dirty = false;
+    viz.strip?.render();
+    viz.conv?.render();
+  }
   requestAnimationFrame(loop);
 }
 
@@ -209,10 +241,12 @@ function restart() {
   state.selected = null;
   state.pinned = false;
   acc = 0;
-  renderStream(false);
+  viz.flow?.clear();
+  renderStream();
   renderCounters();
   renderInspector();
   renderPlayState();
+  markDirty();
 }
 
 function setSpeed(v) {
@@ -232,14 +266,14 @@ function fmtValue(f, v) {
   return v.toLocaleString("en-US", { maximumFractionDigits: dp, minimumFractionDigits: dp });
 }
 
-function contribList(pm, row, top = 7) {
+function contribList(pm, row, top = 7, grow = false) {
   const items = contributions(pm, row).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
   const shown = items.slice(0, top);
   const rest = items.slice(top);
   const restSum = rest.reduce((s, [, c]) => s + c, 0);
   const logit = pm.intercept + items.reduce((s, [, c]) => s + c, 0);
   const scale = Math.max(1, ...shown.map(([, c]) => Math.abs(c)), Math.abs(restSum));
-  const ul = h("ul", "contrib");
+  const ul = h("ul", `contrib${grow && !REDUCED ? " grow" : ""}`);
   ul.setAttribute("aria-label", "Contribution of each feature to the log-odds (coefficient × model input)");
   const line = (label, valueLabel, c, bar = true, cls = "") => {
     const li = h("li", cls);
@@ -266,6 +300,7 @@ function contribList(pm, row, top = 7) {
 
 // ---------------------------------------------------------------- inspector
 
+let lastInspected = null;
 function renderInspector() {
   const body = $("insp-body");
   const mode = $("insp-mode");
@@ -306,12 +341,14 @@ function renderInspector() {
     follow.addEventListener("click", () => {
       state.pinned = false;
       state.selected = state.played ? state.played - 1 : null;
-      renderStream(false);
+      renderStream();
       renderInspector();
     });
     actions.append(follow);
   }
-  body.replaceChildren(head, contribList(FOLD[String(r.fold)], r), note, actions);
+  const grow = lastInspected !== i;
+  lastInspected = i;
+  body.replaceChildren(head, contribList(FOLD[String(r.fold)], r, 7, grow), note, actions);
 }
 
 // ---------------------------------------------------------------- playground
@@ -635,6 +672,9 @@ function setTheme(theme) {
   }
   syncThemeButton();
   if (state.curve) renderSim();
+  for (const v of Object.values(viz)) v.refresh?.();
+  viz.pr?.render();
+  markDirty();
 }
 function syncThemeButton() {
   const light = document.documentElement.dataset.theme === "light";
@@ -645,6 +685,7 @@ function syncThemeButton() {
 const toggleTheme = () => setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
 
 const COMMANDS = [
+  ["section", "Decision flow", () => goTo("flow")],
   ["section", "Live stream", () => goTo("stream")],
   ["section", "Inspector", () => goTo("inspector")],
   ["section", "Model, measured (headline metrics)", () => goTo("metrics")],
@@ -789,17 +830,46 @@ function init() {
     const i = Number(b.dataset.i);
     state.pinned = !(state.pinned && state.selected === i);
     state.selected = state.pinned ? i : state.played - 1;
-    renderStream(false);
+    renderStream();
     renderInspector();
   });
 
   buildPlaygroundForm();
   for (const b of document.querySelectorAll("[data-preset]")) b.addEventListener("click", () => preset(b.dataset.preset));
 
+  const vizCtx = {
+    scores: SCORES,
+    y: Y,
+    played: () => state.played,
+    thr,
+    index: () => state.index,
+    speed: () => state.speed,
+    fmtScore,
+    full: () => sampleOutcomes(SCORES, Y, AMT, thr(), state.params),
+    select: selectRow,
+    selectLatest: (o) => {
+      for (let i = state.played - 1; i >= 0; i--) if (outcomeOf(SCORES[i], Y[i], thr()) === o) return selectRow(i);
+    },
+    setThreshold: (t) => setIndex(nearestIndex(D, t)),
+    setIndex,
+  };
+  viz.flow = createFlow($("flow"), vizCtx);
+  viz.strip = createStrip($("strip"), vizCtx);
+  viz.conv = createConvergence($("conv"), vizCtx);
+  viz.pr = createPR($("pr"), vizCtx, D);
+  $("flow-static").hidden = !REDUCED;
+  for (const b of document.querySelectorAll("[data-view]")) {
+    b.addEventListener("click", () => {
+      for (const o of document.querySelectorAll("[data-view]")) o.setAttribute("aria-checked", String(o === b));
+      viz.flow.setView(b.dataset.view);
+      $("flow-filter").hidden = b.dataset.view === "all";
+    });
+  }
+
   recomputeCurve();
   renderSim();
   renderPlayState();
-  renderStream(false);
+  renderStream();
   renderCounters();
   renderInspector();
   loadPlayground(ROWS.find((r) => r.y === 1));

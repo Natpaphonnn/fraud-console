@@ -50,6 +50,25 @@
         the rest <b class="tag">APPROVE</b>.</p>
     </div>
 
+    <div class="panel flow" id="flow" aria-labelledby="flow-title">
+      <div class="panel-head">
+        <h2 class="panel-title" id="flow-title">Decision flow</h2>
+        <div class="seg" role="radiogroup" aria-label="Which transactions are drawn as moving dots">
+          <button type="button" role="radio" data-view="all" aria-checked="true" disabled>all dots</button>
+          <button type="button" role="radio" data-view="sample" aria-checked="false" disabled>fraud + 1 in 10 legit</button>
+        </div>
+      </div>
+      <p class="panel-meta" id="flow-note">Each transaction enters the model, gets a score and takes a lane:
+        score &ge; threshold &rarr; STEP-UP, below &rarr; APPROVE. The truth is revealed at the end of the lane.
+        Lane widths are the counts of all rows played (minimum 2&nbsp;px so small lanes stay visible); they always
+        equal the counters. Click a dot or an outcome to inspect it.</p>
+      <p class="flow-filter" id="flow-filter" hidden>Dots shown: every fraud row and 1 in 10 legit rows. Lanes and
+        counts still include every row.</p>
+      <p class="flow-filter" id="flow-static" hidden>Reduced motion is on: static diagram, no moving dots. Step or
+        Play to update it.</p>
+      <div class="flow-box"><canvas id="flow-canvas" aria-hidden="true"></canvas></div>
+    </div>
+
     <div class="console">
       <div class="panel stream" id="stream" aria-labelledby="stream-title">
         <div class="panel-head">
@@ -67,6 +86,16 @@
         </div>
         <p class="panel-meta">{{stream_n}} dev transactions ({{stream_fraud}} fraud), random order · each scored
           out-of-fold by the CV model that did not train on it · <span id="s-progress">0 played</span></p>
+        <div class="strip" id="strip">
+          <div class="strip-head"><span class="k">score strip</span>
+            <span class="fine">every played row as a dot · log scale · drag the line to move the threshold</span></div>
+          <div class="strip-plot">
+            <canvas aria-hidden="true"></canvas>
+            <div class="strip-handle" role="slider" tabindex="0" aria-label="Step-up threshold (drag or arrow keys)"
+                 aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><span class="strip-grip"></span></div>
+          </div>
+          <div class="strip-axis" aria-hidden="true"><span style="left:0%">0.0001</span><span style="left:25%">0.001</span><span style="left:50%">0.01</span><span style="left:75%">0.1</span><span style="left:100%">1</span></div>
+        </div>
         <p class="legend-line" id="s-legend"><span class="lg-item"><span class="o o--tp">●</span>fraud caught</span>
           <span class="lg-item"><span class="o o--fn">×</span>fraud missed</span>
           <span class="lg-item"><span class="o o--fp">○</span>false alarm</span>
@@ -116,6 +145,12 @@
               <div><dt>precision</dt><dd id="c-precision">—</dd></div>
             </dl>
           </div>
+          <figure class="conv" id="conv">
+            <figcaption><span class="k">convergence</span>
+              <span class="conv-key"><i class="ck ck--recall"></i>recall <i class="ck ck--precision"></i>precision
+              <i class="ck ck--ref"></i>full sample · bands: 95% Wilson</span></figcaption>
+            <div class="conv-box"></div>
+          </figure>
           <p class="fine">Both use the same out-of-fold scores and the current threshold; moving it re-labels every
             row. Rates on the rows played so far are noisy until many rows have played. *{{cost_label}}, as set in the
             simulator below.</p>
@@ -202,6 +237,11 @@
           <span><i class="key key--now"></i>current</span>
           <span><i class="key key--best"></i>lowest cost</span>
         </div>
+      </figure>
+      <figure class="panel chart pr" id="pr">
+        <figcaption><span class="k">precision vs recall across thresholds</span> <span class="muted">same dev
+          out-of-fold counts as the cost curve · the dot is the current threshold · click to set</span></figcaption>
+        <div class="pr-box"></div>
       </figure>
     </div>
   </div>
