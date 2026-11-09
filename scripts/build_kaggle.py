@@ -27,6 +27,7 @@ DATASET_URL = "https://www.kaggle.com/datasets/uditjain13/credit-card-fraud-dete
 
 # Artifacts each notebook reads from earlier notebooks (Kaggle runs notebooks separately).
 _CV = "reports/cv"
+REPO_ONLY = {"web.py"}  # website builder; not needed on Kaggle
 NEEDS: dict[str, list[str]] = {
     "04_modeling": [f"{_CV}/logreg.{x}" for x in ("folds.csv", "spec.json", "oof.csv.gz")]
     + [f"{_CV}/logreg_balanced.{x}" for x in ("folds.csv", "spec.json")],
@@ -38,7 +39,11 @@ NEEDS: dict[str, list[str]] = {
 
 
 def bootstrap_source(stem: str) -> str:
-    files = {f"src/fraud_e2e/{p.name}": p.read_text() for p in sorted(SRC.glob("*.py"))}
+    files = {
+        f"src/fraud_e2e/{p.name}": p.read_text()
+        for p in sorted(SRC.glob("*.py"))
+        if p.name not in REPO_ONLY
+    }
     files["configs/cost.yaml"] = (REPO / "configs" / "cost.yaml").read_text()
     binary = {}
     for rel in NEEDS.get(stem, []):

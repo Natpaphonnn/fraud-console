@@ -244,7 +244,33 @@ def build_context() -> dict[str, str]:
     )
     ex = {e["label"]: e for e in shap["examples"]}
     c["shap_missed_amount"] = f"{ex['missed fraud']['amount_usd']:,.2f} USD"
+
+    for key, url in load_links().items():
+        c[f"link_{key}_md"] = f"[{LINK_LABELS[key]}]({url})" if url else "_TODO (Nat)_"
     return c
+
+
+LINK_LABELS = {
+    "github": "GitHub",
+    "kaggle": "Kaggle notebooks",
+    "medium": "Medium article",
+    "website": "Project page",
+}
+
+
+def load_links(path: Path | None = None) -> dict[str, str]:
+    """Public links from configs/links.yaml (empty string = not published yet)."""
+    import yaml
+
+    raw = yaml.safe_load(Path(path or C.CONFIGS_DIR / "links.yaml").read_text()) or {}
+    unknown = set(raw) - set(LINK_LABELS)
+    if unknown:
+        raise KeyError(f"unknown link keys in links.yaml: {sorted(unknown)}")
+    links = {k: str(raw.get(k) or "").strip() for k in LINK_LABELS}
+    for k, url in links.items():
+        if url and not url.startswith("https://"):
+            raise ValueError(f"links.yaml: {k} must be an https:// URL, got {url!r}")
+    return links
 
 
 _PLACEHOLDER = re.compile(r"\{\{\s*(\w+)\s*\}\}")

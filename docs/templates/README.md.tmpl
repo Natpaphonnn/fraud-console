@@ -2,9 +2,9 @@
 
 An end-to-end data-science case study on a small, highly imbalanced fraud dataset: data checks, EDA, pre-registered model comparison, expected-cost thresholds, a one-time holdout check and explanations — with an uncertainty interval on every number.
 
-**Links:** Kaggle notebooks: _TODO (Nat)_ · Medium article: _TODO (Nat)_ · Project page: _TODO (Nat)_
+**Links:** Project page (with threshold simulator): {{link_website_md}} · Kaggle notebooks: {{link_kaggle_md}} · Medium article: {{link_medium_md}}
 
-> **Status:** data-science work complete (notebooks 00–06, model card). Engineering (API, Docker, MLflow, CI) and monitoring are deferred. Next: a static project page with a threshold simulator.
+> **Status:** data-science work complete (notebooks 00–06, model card) and a static project page with a threshold simulator (`web/site/`). Engineering (API, Docker, MLflow, CI) and monitoring are deferred.
 
 ## The problem
 
@@ -61,15 +61,16 @@ Self-contained Kaggle editions of 01–06 are in [`kaggle/`](kaggle/).
 - 20% stratified holdout locked before any label-based analysis, scored **once**; a lock file refuses any other pipeline or threshold.
 - Repeated stratified 5-fold CV (3 repeats) on the other 80%; all preprocessing and resampling inside training folds; leakage guards in the test suite.
 - Comparisons and decision rules written down before results ([pre-registration](notes/00_preregistration.md), with dated amendments): a more complex option replaces a simpler one only if the 95% CI of the paired difference (corrected resampled t-test) excludes 0.
-- Every number in this README, the model card and notebook 00 is generated from committed artifacts in `reports/`.
+- Every number in this README, the model card, notebook 00 and the project page is generated from committed artifacts in `reports/`.
 
 ## Run it
 
 ```bash
 uv sync              # Python 3.12 environment from uv.lock
-make check           # ruff + pytest (incl. leakage/split guards) + docs freshness check
+make check           # ruff + pytest (incl. leakage/split guards) + docs/website freshness + JS tests
 make notebooks       # re-execute notebooks 00–06 in order; results land in reports/
-make docs            # regenerate README.md, docs/model_card.md, notes/interview_notes_th.md
+make docs            # regenerate README.md, docs/model_card.md, notes/interview_notes_th.md, web/site/
+make web-serve       # preview the project page at http://localhost:8000
 make kaggle          # rebuild Kaggle editions
 ```
 
@@ -82,9 +83,10 @@ src/fraud_e2e/   library code (data, splits, features, models, cv, cost, thresho
 notebooks/       executed notebooks (sources in notebooks/py/)
 kaggle/          Kaggle editions of the notebooks
 reports/         JSON/CSV results, CV fold metrics, figures
-docs/            model card (+ templates for generated docs)
+docs/            model card, deploy guide (+ templates for generated docs)
+web/             static project page: templates/ (source) → site/ (generated, deployable)
 notes/           pre-registration, cost assumptions, experiment log, holdout lock
-configs/         cost assumptions
+configs/         cost assumptions, public links
 tests/           pytest suite
 ```
 
