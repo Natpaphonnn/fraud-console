@@ -219,6 +219,21 @@ OVERFLOWING = """() => [...document.querySelectorAll(
     || e.getBoundingClientRect().right > innerWidth + 1)
   .map(e => e.className + ': ' + e.textContent.trim().slice(0, 40))"""
 
+FONT_FAMILIES = """() => {
+  const fam = (sel) => {
+    const e = document.querySelector(sel);
+    return e ? getComputedStyle(e).fontFamily : null;
+  };
+  const out = {};
+  for (const s of ['.panel-meta', '.fine', '.legend-line', '.legend', '.kicker', '.flag', '.m-sub'])
+    out['text ' + s] = fam(s);
+  const nums = ['.decision', '.srow .dec', '#thr-out', '.stats .v', '.ctr-grid dd',
+    '.chart .axis text'];
+  for (const s of nums)
+    out['num ' + s] = fam(s);
+  return Object.fromEntries(Object.entries(out).filter(([, v]) => v));
+}"""
+
 
 def thai_checks(browser, url: str, check: Checks) -> None:
     """Thai: same numbers as English, Thai font loaded, palette translated, nothing overflows."""
@@ -243,6 +258,19 @@ def thai_checks(browser, url: str, check: Checks) -> None:
     check(
         page.evaluate("document.fonts.check('16px FraudThai', 'ทดสอบ')"),
         "Thai font FraudThai is loaded",
+    )
+    check(page.evaluate("document.fonts.check('16px FraudMono', '0.0695')"), "FraudMono is loaded")
+    fam = {k: v.replace('"', "") for k, v in page.evaluate(FONT_FAMILIES).items()}
+    prose = {k: v for k, v in fam.items() if k.startswith("text ")}
+    nums = {k: v for k, v in fam.items() if k.startswith("num ")}
+    check(
+        len(prose) >= 5
+        and all(v.startswith(("FraudDigits, FraudThai", "FraudThai")) for v in prose.values()),
+        f"Thai descriptions, legends, captions use FraudThai ({len(prose)}) {set(prose.values())}",
+    )
+    check(
+        len(nums) >= 5 and all(v.startswith("FraudMono") for v in nums.values()),
+        f"numbers, STEP-UP/APPROVE, axes, thresholds stay mono ({len(nums)}) {set(nums.values())}",
     )
     check(
         "ข้อจำกัด" in (page.get_attribute(".flags", "aria-label") or ""), "caveat labels are in Thai"
@@ -318,6 +346,8 @@ def main() -> int:
             page.wait_for_timeout(1800)
             n = played(page)
             check(n > 0, f"stream autoplays ({n} rows in 1.8 s)")
+            mono = page.evaluate("getComputedStyle(document.querySelector('.decision')).fontFamily")
+            check(mono.startswith("FraudMono"), f"English: monospace text uses FraudMono ({mono})")
             check(not errors, f"autoplay: no console errors {errors}")
             page.close()
 

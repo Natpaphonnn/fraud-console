@@ -14,7 +14,7 @@ from fraud_e2e.web import LANGS, SITE, SRC, dictionaries, load_dict, localized_c
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
-from build_fonts import wanted_codepoints  # noqa: E402
+from build_fonts import FAMILIES, THAI_FAMILY, chars, wanted_codepoints  # noqa: E402
 
 BUILD_PH = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 RUNTIME_PH = re.compile(r"(?<!\{)\{(\w+)\}(?!\})")
@@ -113,21 +113,35 @@ def test_caveat_labels_are_translated(built):
 
 
 @pytest.mark.parametrize("weight", [400, 500, 600])
-def test_thai_font_subset(weight, src):
-    path = SRC / "fonts" / f"fraudthai-{weight}.woff2"
+@pytest.mark.parametrize("family", FAMILIES, ids=lambda f: f.name)
+def test_font_subsets(family, weight):
+    path = SRC / "fonts" / f"{family.slug}-{weight}.woff2"
     font = TTFont(path)
-    for rec in font["name"].names:  # Reserved Font Name: the modified font is not called "Plex"
+    for rec in font["name"].names:  # Reserved Font Name: the modified fonts are not called "Plex"
         if rec.nameID in (1, 3, 4, 6, 16, 17, 21):
             assert "plex" not in rec.toUnicode().lower(), (rec.nameID, rec.toUnicode())
-    assert font["name"].getDebugName(1) == "FraudThai"
-    cmap = font.getBestCmap()
-    source = TTFont(
-        REPO / "web/fonts_src/ibm-plex-sans-thai-looped/IBMPlexSansThaiLooped-Regular.ttf"
-    )
-    has = source.getBestCmap()  # characters the original font has (others fall back, e.g. ↵)
-    chars = {ch for text in src["th"].values() for ch in text if ord(ch) >= 0x20 and ord(ch) in has}
-    assert {ch for ch in chars if ord(ch) not in cmap} == set()
-    assert set(cmap) <= wanted_codepoints()  # Thai block, ASCII and characters th.json uses
+    assert font["name"].getDebugName(1) == family.name
+    assert "copyright" in (font["name"].getDebugName(0) or "").lower()  # notice kept
+    cmap = set(font.getBestCmap())
+    # a subset: what the site asks for plus a few glyphs pulled in by layout rules (≤ with ≥)
+    assert len(cmap - wanted_codepoints(family)) <= 5
+    # the source fonts are not in the repo: check the characters these fonts must cover
+    must = set(range(0x20, 0x7F))
+    if family is THAI_FAMILY:
+        th = load_dict("th")  # every Thai letter the Thai page uses
+        must |= {cp for text in th.values() for cp in chars(text) if 0x0E00 <= cp < 0x0E80}
+    assert must - cmap == set(), sorted(must - cmap)
     assert "plex" not in path.name.lower()
     for folder in (SRC / "fonts", SITE / "fonts"):
-        assert (folder / "OFL.txt").read_text().startswith("Copyright")
+        assert (folder / family.licence).read_text().startswith("Copyright")
+
+
+def test_css_fonts_exist_and_thai_keeps_numbers_monospace():
+    css = (SRC / "style.css").read_text()
+    for url in re.findall(r'url\("([^"]+)"\)', css):
+        assert (SRC / url).exists() and (SITE / url).exists(), url
+    assert re.search(r'--mono: "FraudMono"', css)
+    thai = css[css.index(':root[lang="th"] {') :]
+    assert '--num: "FraudMono"' in thai and '--mono: "FraudDigits", "FraudThai"' in thai
+    for kept in (".decision", ".axis text", "output", ".stats .v", ".tag"):
+        assert kept in thai.split("{ font-family: var(--num); }")[0], kept

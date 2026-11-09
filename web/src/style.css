@@ -13,7 +13,8 @@
   --accent-dim: rgba(255, 176, 32, 0.13);
   --on-accent: #0a0c0f;
   --danger: #ff5f56;           /* only for a missed fraud */
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --mono: "FraudMono", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --num: var(--mono); /* numbers, decisions, axes: always monospace */
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --r: 6px;
   color-scheme: dark;
@@ -35,15 +36,30 @@
   color-scheme: light;
 }
 
-/* Thai: FraudThai = subset of IBM Plex Sans Thai Looped (SIL OFL 1.1, see fonts/OFL.txt).
-   Loaded only when the page is in Thai (it is not used by any English text). */
+/* Self-hosted fonts (SIL OFL 1.1; renamed subsets, see fonts/OFL*.txt and the footer credit).
+   FraudMono = subset of IBM Plex Mono: numbers, labels, decisions, axes.
+   FraudThai = subset of IBM Plex Sans Thai Looped: Thai text (downloaded only when the page is in Thai).
+   FraudDigits = the FraudMono digits alone (unicode-range), so numbers inside Thai sentences stay monospace. */
+@font-face { font-family: "FraudMono"; src: url("fonts/fraudmono-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "FraudMono"; src: url("fonts/fraudmono-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "FraudMono"; src: url("fonts/fraudmono-600.woff2") format("woff2"); font-weight: 600 700; font-style: normal; font-display: swap; }
 @font-face { font-family: "FraudThai"; src: url("fonts/fraudthai-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "FraudThai"; src: url("fonts/fraudthai-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
 @font-face { font-family: "FraudThai"; src: url("fonts/fraudthai-600.woff2") format("woff2"); font-weight: 600 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "FraudDigits"; src: url("fonts/fraudmono-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+0025, U+002C, U+002E, U+0030-0039, U+2212; }
+@font-face { font-family: "FraudDigits"; src: url("fonts/fraudmono-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; unicode-range: U+0025, U+002C, U+002E, U+0030-0039, U+2212; }
+@font-face { font-family: "FraudDigits"; src: url("fonts/fraudmono-600.woff2") format("woff2"); font-weight: 600 700; font-style: normal; font-display: swap; unicode-range: U+0025, U+002C, U+002E, U+0030-0039, U+2212; }
 :root[lang="th"] {
   --sans: "FraudThai", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "FraudThai", monospace;
+  /* Thai: text that is monospace in English (descriptions, legends, captions, labels) uses FraudThai,
+     with monospace digits; numbers, STEP-UP / APPROVE, axes and thresholds keep the real monospace. */
+  --num: "FraudMono", ui-monospace, "SF Mono", Menlo, Consolas, "FraudThai", monospace;
+  --mono: "FraudDigits", "FraudThai", system-ui, sans-serif;
 }
+:root[lang="th"] :is(code, kbd, output, .mono, .brand, .tag, .srow, .decision, .insp-head, .insp-score, .contrib li,
+  .fl-score, .fl-lane, .fl-bucket b, .ctr-grid dd, .stats .v, .stats .ci, .pg-score .v, .sbar-val, .strip-axis,
+  .axis text, .pr .note, .forest-ticks, .forest .value, .bars .val, table.results, input[type="number"],
+  .tooltip strong, .seg [data-speed], .cmd kbd) { font-family: var(--num); }
 :root[lang="th"] body, :root[lang="th"] button, :root[lang="th"] input, :root[lang="th"] select { font-family: var(--sans); }
 :root[lang="th"] * { letter-spacing: normal !important; } /* tracking breaks Thai vowel and tone marks */
 :root[lang="th"] .srow--head, :root[lang="th"] .panel-title, :root[lang="th"] .k { line-height: 1.45; }

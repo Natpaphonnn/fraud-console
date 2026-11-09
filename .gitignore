@@ -55,3 +55,6 @@ docs/templates/interview_notes_th.md.tmpl
 # Content renders come from GitHub Actions (content.yml artifacts); only previews are committed
 reports/content/*
 !reports/content/preview/
+
+# Font sources (IBM Plex, downloaded from github.com/IBM/plex); only the renamed subsets in web/src/fonts are committed
+web/fonts_src/

@@ -40,10 +40,9 @@ STATIC = (
     "viz.js",
     "favicon.svg",
     "vercel.json",
-    "fonts/fraudthai-400.woff2",
-    "fonts/fraudthai-500.woff2",
-    "fonts/fraudthai-600.woff2",
+    *(f"fonts/{slug}-{w}.woff2" for slug in ("fraudmono", "fraudthai") for w in (400, 500, 600)),
     "fonts/OFL.txt",
+    "fonts/OFL-FraudMono.txt",
 )
 TEMPLATE = "index.html.tmpl"
 SHAP_TOP = 10
