@@ -1,0 +1,87 @@
+# Model card: Fraud-E2E step-up scoring model
+
+| | |
+|---|---|
+| **Model** | {{final_model}} (L2, C = 1; one-hot categoricals, log1p on amount and balance, standardised numerics) — pipeline spec `{{final_spec_id}}` |
+| **Task** | Score card transactions for fraud; scores above a threshold are sent to **step-up** (review or extra authentication), the rest are approved |
+| **Owner** | Natpaphon Nukhunthod (portfolio project) |
+| **Status** | Research / portfolio artifact. **Not deployed, not validated on production data.** |
+| **Code** | `src/fraud_e2e/`, notebooks `03`–`06`, protocol `notes/00_preregistration.md` |
+
+## Intended use
+
+- Demonstrating an honest, cost-aware evaluation workflow for rare-event classification: locked splits, pre-registered comparisons, uncertainty on every metric, threshold chosen by expected cost, one-time holdout.
+- Teaching and discussion material (portfolio, article, interview).
+
+## Out of scope — do not use this model to
+
+- Approve, decline or step up **real** card transactions, or make any decision about a real person.
+- Estimate fraud losses or savings for a real institution: the costs are assumptions (see below) and the data provenance is unknown.
+- Claim performance on other datasets, other regions, or other time periods. Nothing here has been tested out of time or out of distribution.
+- Infer causes of fraud from the SHAP explanations; they describe what the model learned from this dataset only.
+
+## Data
+
+- *Credit Card Fraud Detection 2026* by Udit Jain (Kaggle), **CC0**. A **public CC0 dataset of unspecified provenance**: the data card does not say whether rows are real or synthetic.
+- {{n_rows}} transactions, {{n_fraud}} fraud ({{fraud_rate}}, 95% CI {{fraud_rate_ci}}); {{n_features}} features (categorical, boolean, counts, continuous). `transaction_id` is never used as a feature.
+- Split (locked before any label-based analysis): dev {{dev_n}} rows / {{dev_fraud}} fraud for 5-fold CV × 3 repeats; holdout {{holdout_n}} rows / {{holdout_fraud}} fraud, scored once.
+- Data checks: {{n_checks_failed}} of {{n_checks}} structural checks failed. Channel and device type look statistically independent (p = {{chan_dev_p}}), and combinations unusual for real card traffic are common (largest: `{{implausible_rule}}`, {{implausible_share}} of rows). This is consistent with synthetic generation; provenance stays "unspecified".
+
+## Performance
+
+| Metric | CV on dev (15 folds, mean [95% CI]) | Holdout, once ({{ho_fraud}} fraud; bootstrap 95% CI) |
+|---|---|---|
+| PR-AUC (primary) | {{cv_pr_auc}} {{cv_pr_auc_ci}} | {{ho_pr_auc}} {{ho_pr_auc_ci}} |
+| ROC-AUC | {{cv_roc_auc}} {{cv_roc_auc_ci}} | {{ho_roc_auc}} {{ho_roc_auc_ci}} |
+| No-skill PR-AUC (= fraud rate) | {{noskill}} | {{ho_noskill}} |
+| Recall at threshold {{threshold}} | {{cv_recall}} | {{ho_recall}} {{ho_recall_ci}} |
+| Precision at threshold | {{cv_precision}} | {{ho_precision}} {{ho_precision_ci}} |
+| Share of transactions stepped up | {{cv_alert_rate}} | {{ho_alert_rate}} {{ho_alert_rate_ci}} |
+| Cost saving vs stepping up nobody* | {{cv_saving}} | {{ho_saving}} {{ho_saving_ci}} (post-hoc, descriptive) |
+
+\* {{cost_label}}.
+
+Fold-to-fold standard deviation of PR-AUC is {{cv_pr_auc_sd}}, larger than most differences between pipelines; that is why pipelines are compared pairwise on the same folds (corrected resampled t-test) rather than by eyeballing their means.
+
+## Decision threshold and costs
+
+The threshold {{threshold}} minimises expected cost on dev out-of-fold predictions (best threshold in each of the 3 CV repeats: {{thr_repeat_range}}). It was fixed before the holdout was scored.
+
+**{{cost_label}}.** Accepted for this project as round, illustrative values:
+
+| Outcome | Assumed cost |
+|---|---|
+| Any step-up (review / OTP) | {{cost_review}} USD |
+| Good customer stepped up (extra friction) | +{{cost_friction}} USD |
+| Missed fraud | {{cost_fn_frac}} × amount + {{cost_fn_fixed}} USD |
+
+Each value was scaled ×0.5 and ×2: the cost-optimal threshold moved between {{sens_thr_min}} and {{sens_thr_max}}; the largest extra cost from keeping the base threshold was {{sens_worst_regret}} per 1,000 transactions ({{sens_worst_param}}). **Re-derive the threshold with your own costs** rather than reusing this one.
+
+A supplementary three-tier policy (approve / step-up ≥ {{tt_stepup}} / decline ≥ {{tt_decline}}; assumes {{tt_pass_rate_pct}} of fraud passes step-up and {{tt_decline_fp}} USD per wrongly declined customer) was cheaper than two-tier on CV ({{tt_cv_diff}} per 1,000) but **not distinguishable on the holdout** ({{ho_tt_diff}} per 1,000, 95% CI {{ho_tt_diff_ci}}).
+
+## Explainability
+
+Exact linear SHAP values (coefficient × centred input). The top three features, {{shap_top3}}, carry {{shap_top3_share}} of mean |SHAP|. Example: the largest missed fraud in CV ({{shap_missed_amount}}) had one strong risk signal but lacked the other red flags. SHAP explains the model's log-odds, not causes of fraud.
+
+## Model selection (pre-registered; simpler option kept unless the 95% CI of the paired difference excludes 0)
+
+- XGBoost vs LightGBM: {{xgb_vs_lgbm_diff}} {{xgb_vs_lgbm_ci}} → {{xgb_vs_lgbm_verdict}}.
+- Imbalance handling vs none (LightGBM): class weight {{cw_diff}} {{cw_ci}}; undersampling {{us_diff}} {{us_ci}}; SMOTENC {{smote_diff}} {{smote_ci}}.
+- Tuning ({{tuning_n_trials}} trials): {{tuning_diff}} {{tuning_ci}}.
+- Best boosting (`{{best_boost_name}}`) minus logistic: {{boost_vs_lr_diff}} {{boost_vs_lr_ci}} → logistic kept.
+- `is_ai_generated_scam_attempt` (with minus without): {{ai_flag_diff}} {{ai_flag_ci}} → kept.
+- Calibration: {{calibration_verdict}}.
+
+## Limitations and risks
+
+- **Unknown provenance.** Patterns may be artefacts of how the data was generated (for example, no fraud below {{fraud_min_usd}} although {{legit_below_fraud_min}} of legitimate transactions are smaller; independent channel and device).
+- **No customer or card ID.** No customer-level features; one customer may appear in train and validation, so CV can be optimistic by an unknown amount.
+- **No real timestamps.** No out-of-time validation; temporal drift is untested.
+- **Small positive class.** {{n_fraud}} fraud cases in total, {{ho_fraud}} in the holdout; holdout cost intervals are wide.
+- **Assumed costs.** All cost numbers are illustrative; real costs differ by institution and change the threshold.
+- **Fairness not assessed.** `customer_age` is an input; no protected-attribute analysis was done. Any real use would need one.
+- **Probabilities.** Sigmoid and isotonic calibration did not improve the Brier score on CV (Brier {{lr_brier}}); calibration under drift was not checked.
+
+## Reproduce
+
+`uv sync && make notebooks && make docs` regenerates every number above from the locked split and seed 42. This card is generated by `scripts/render_docs.py` from `reports/*.json`.

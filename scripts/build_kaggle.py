@@ -99,4 +99,6 @@ def build(py_path: Path) -> Path:
 
 if __name__ == "__main__":
     for py in sorted(NB_SRC.glob("*.py")):
+        if py.stem == "00_summary":  # reads every other notebook's results; repo-only
+            continue
         print("built", build(py).relative_to(REPO))

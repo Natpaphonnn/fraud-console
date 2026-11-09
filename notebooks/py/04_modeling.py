@@ -350,6 +350,56 @@ write_json(
 table.round(4)
 
 # %% [markdown]
+# ## 8. Scope of the conclusion: why logistic regression wins *here*
+#
+# The claim is narrow: **on this dataset, with these features and this protocol, logistic
+# regression ranks fraud at least as well as gradient boosting.** It is not a claim that linear
+# models beat boosting for fraud in general. Three observations from P1 and from the tuning run
+# explain why the result is plausible for this data, and none of them needs to hold elsewhere.
+#
+# 1. **Signals add up on the log-odds scale.** Logistic regression models the log-odds as a sum of
+#    feature effects. P1 showed that fraud odds multiply by a large factor with each extra red
+#    flag, which is close to that shape.
+# 2. **Little structure for trees to exploit.** Numeric features are at most moderately correlated
+#    and the binned fraud rates of the strongest features in P1 rise steadily; channel × device looked
+#    independent. Trees
+#    earn their keep on interactions and thresholds; there is little of either to find.
+# 3. **Tuning pushed the trees towards simplicity.** The best tuning trials used very small trees,
+#    i.e. close to an additive model, and still did not catch up.
+#
+# What could change the result elsewhere: customer history (spend velocity per card, usual merchants),
+# real timestamps, or genuine feature interactions; all are absent here (see notebook 01).
+
+# %%
+import json as _json  # noqa: E402
+
+_eda = _json.loads((C.REPORTS_DIR / "p1_eda_summary.json").read_text())
+_rf = _eda["red_flags"]
+_logit = [np.log(r["fraud_rate"] / (1 - r["fraud_rate"])) for r in _rf]
+_steps = np.diff(_logit)
+_top_leaves = trials.head(5)["num_leaves"].astype(int).tolist() if bname == "lgbm" else None
+_noskill = final_out.folds["base_rate"].mean()
+_fin = metric_ci(final_out, "pr_auc")
+_bst = metric_ci(boost_best, "pr_auc")
+display(
+    Markdown(f"""
+**Evidence, computed:**
+
+- Fraud rate by number of red flags (dev, P1): {", ".join(f"{r['level']}: {100 * r['fraud_rate']:.2f}%" for r in _rf)}.
+  Each extra flag multiplies the odds by {", ".join(f"×{np.exp(x):.1f}" for x in _steps)}: large and
+  same-signed, shrinking somewhat at the top (the last group is "4 or more" and small).
+- Largest absolute Spearman correlation between numeric features: {_eda["max_abs_spearman"]["value"]:.2f}.
+- `num_leaves` of the 5 best tuning trials: {_top_leaves}.
+
+**PR-AUC in context.** A random score has PR-AUC equal to the fraud rate, about **{_noskill:.3f}**
+here. Logistic regression reaches **{_fin["mean"]:.3f}** (95% CI {_fin["ci_low"]:.3f}–{_fin["ci_high"]:.3f}),
+about **{_fin["mean"] / _noskill:.0f}×** that; the best boosting pipeline reaches {_bst["mean"]:.3f}
+({_bst["ci_low"]:.3f}–{_bst["ci_high"]:.3f}). PR-AUC is far from 1 for every model: on these features,
+a large share of fraud looks like ordinary traffic.
+""")
+)
+
+# %% [markdown]
 # ## Summary
 
 # %%
