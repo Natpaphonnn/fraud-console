@@ -371,11 +371,11 @@ def render(name: str, d: dict, w: int, h: int, variant: str, phase=None, fig_ax=
 # ----------------------------------------------------------------------------- annotated clips
 
 ANNOT_SECONDS = 8  # 3 captions, each held ~2 s
-FADE = 0.35  # seconds
+FADE = 0.25  # seconds: quick fade-in/out (<= 0.3 s), then fully opaque >= 1.5 s
 # caption windows in seconds (start, end) incl. fades; the first one wraps around the loop, so the
 # very first frame already shows text and the loop stays seamless
 ANNOT_WINDOWS = ((-FADE, 2.5), (2.5, 5.25), (5.25, 8.0 - FADE))
-CAPTION_PT, SMALL_PT = 34, 14  # at 1080 px; ~47 px caption text
+CAPTION_PT, SMALL_PT = 34, 18  # at 1080 px; ~47 px caption, note >= half of it (phone-readable)
 FONT_DIR = C.ROOT / "web" / "src" / "fonts"
 MONO = "FraudMono"
 
@@ -388,7 +388,7 @@ def register_mono() -> set[int]:
 
     tmp = Path(mkdtemp(prefix="fraudmono-"))
     cmap: set[int] = set()
-    for weight in (400, 600):
+    for weight in (400, 500, 600):
         font = TTFont(FONT_DIR / f"fraudmono-{weight}.woff2")
         font.flavor = None
         ttf = tmp / f"fraudmono-{weight}.ttf"
@@ -437,7 +437,7 @@ def annotations(name: str, d: dict) -> list[dict]:
     return [
         {"text": f"{n:,} transactions"},
         {"text": f"Gold = fraud ({n_fraud:,})"},
-        {"text": "Fraud clusters — · the model learns this", "target": tuple(centre)},
+        {"text": "Fraud sits apart — · the model learns this", "target": tuple(centre)},
     ]
 
 
@@ -502,6 +502,9 @@ def annotated_canvas(name: str, d: dict, w: int, h: int, cmap: set[int]):
     for spec in annotations(name, d):
         lines = wrap(fig, spec["text"], CAPTION_PT * k, (right - left) * w)
         caps.append({**spec, "lines": lines})
+        if "small" in spec:
+            caps[-1]["small_lines"] = wrap(fig, spec["small"], SMALL_PT * k, (right - left) * w,
+                                           weight=500)  # fmt: skip
     used = "".join(c["text"] + c.get("small", "") for c in caps) + credit
     missing = sorted({ch for ch in used if ord(ch) not in cmap and not ch.isspace()})
     if missing:
@@ -526,9 +529,11 @@ def draw_captions(fig, ax, k, caps, t: float, total: float, w: int, h: int) -> l
         )  # fmt: skip
         y_end = top - len(cap["lines"]) * line_h
         if "small" in cap:
-            artists.append(fig.text(left, y_end - 0.006, cap["small"], color=MUTED, alpha=a,
-                                    fontsize=SMALL_PT * k, va="top"))  # fmt: skip
-            y_end -= SMALL_PT * k * 1.4 / 72 * 100 / h
+            small = "\n".join(cap["small_lines"])
+            artists.append(fig.text(left, y_end - 0.006, small, color=MUTED, alpha=a,
+                                    fontsize=SMALL_PT * k, weight=500, va="top",
+                                    linespacing=1.3))  # fmt: skip
+            y_end -= 0.006 + len(cap["small_lines"]) * SMALL_PT * k * 1.3 / 72 * 100 / h
         if "target" in cap:
             x2, y2, _ = proj3d.proj_transform(*cap["target"], ax.get_proj())
             ax.scatter(*([v] for v in cap["target"]), s=900 * k**2, facecolors="none",

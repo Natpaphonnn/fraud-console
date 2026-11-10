@@ -79,6 +79,9 @@ def test_annotated_captions_quote_the_reports_and_stay_readable(dev):
     assert caps["cost_valley"][2]["small"] == "Illustrative assumed costs (not bank data)"
     assert caps["galaxy"][0]["text"] == f"{web['n_rows']:,} transactions"
     assert caps["galaxy"][1]["text"] == f"Gold = fraud ({web['n_fraud']:,})"
+    galaxy_last = caps["galaxy"][2]["text"].replace(" · ", " ")
+    assert galaxy_last == "Fraud sits apart — the model learns this"
+    assert cf.SMALL_PT >= cf.CAPTION_PT / 2  # the cost note is readable on a phone
     targets = {name: [c for c in cs if "target" in c] for name, cs in caps.items()}
     assert all(len(t) == 1 for t in targets.values())  # threshold, cheapest point, fraud cluster
     for cs in caps.values():
@@ -96,6 +99,9 @@ def test_annotation_timing_holds_each_caption_and_loops_seamlessly():
     assert alphas[0, 0] == 1.0  # text from the very first frame
     held = (alphas >= 1.0).sum(axis=0) / fps
     assert (held >= 1.5).all() and (held <= 2.5).all(), held  # ~1.5-2 s fully visible each
+    assert cf.FADE <= 0.3  # quick fade-in: partly transparent for at most 0.3 s
+    fading = ((alphas > 0) & (alphas < 1)).sum(axis=0) / fps
+    assert (fading <= 2 * 0.3 + 1e-9).all(), fading  # fade-in + fade-out per caption
     assert ((alphas > 0).sum(axis=1) <= 1).all()  # one caption at a time
     # the last frame flows into the first: caption 1 is fading in at the end of the loop
     assert 0 < alphas[-1, 0] < 1 and alphas[-1, 1:].sum() == 0
@@ -117,4 +123,6 @@ def test_annotated_captions_fit_the_safe_area_without_lone_words(dev, size):
             lines = cf.wrap(fig, cap["text"], cf.CAPTION_PT, (right - left) * w)
             assert len(lines) <= 3, lines
             assert len(lines) == 1 or len(lines[-1].split()) > 1, lines  # no lone last word
+            if "small" in cap:
+                assert len(cf.wrap(fig, cap["small"], cf.SMALL_PT, (right - left) * w)) <= 2
     plt.close(fig)
